@@ -571,14 +571,107 @@ async def get_roles():
         return [dict(r) for r in rows]
 
 @sms_router.post("/roles")
-async def create_role(rol: str = Form(...), estado: str = Form("ACTIVO")):
+async def create_role(data: dict):
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        # Insert new role
+        row = await conn.fetchrow(
+            "INSERT INTO rol (rol, estado) VALUES ($1, $2) RETURNING *",
+            data.get('rol'), data.get('estado', 'ACTIVO')
+        )
+        new_role = dict(row)
+        
+        # Create options for the new role (all menus as INACTIVO by default)
+        menus = await conn.fetch("SELECT id_menu FROM menu")
+        for menu in menus:
+            await conn.execute("""
+                INSERT INTO opciones (id_opcion, id_rol, id_menu, estado) 
+                VALUES ((SELECT COALESCE(MAX(id_opcion),0)+1 FROM opciones), $1, $2, 'INACTIVO')
+            """, new_role['id_rol'], menu['id_menu'])
+        
+        return new_role
+
+@sms_router.put("/roles/{id}")
+async def update_role(id: int, data: dict):
     pool = await get_pg_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "INSERT INTO rol (rol, estado) VALUES ($1, $2) RETURNING *",
-            rol, estado
+            "UPDATE rol SET rol = $1, estado = $2 WHERE id_rol = $3 RETURNING *",
+            data.get('rol'), data.get('estado'), id
         )
-        return dict(row)
+        return dict(row) if row else {"error": "Not found"}
+
+# ========== Opciones (Role Options) ==========
+@sms_router.get("/opciones/{id_rol}")
+async def get_opciones_by_rol(id_rol: int):
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT o.id_opcion, o.id_rol, o.id_menu, m.opcion, o.estado
+            FROM opciones o
+            JOIN menu m ON o.id_menu = m.id_menu
+            WHERE o.id_rol = $1
+            ORDER BY o.id_menu
+        """, id_rol)
+        return [dict(r) for r in rows]
+
+@sms_router.put("/opciones/{id}")
+async def update_opcion(id: int, data: dict):
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE opciones SET estado = $1 WHERE id_opcion = $2",
+            data.get('estado'), id
+        )
+        return {"message": "Opción actualizada"}
+
+# ========== Menu Admin ==========
+@sms_router.get("/menu_admin")
+async def get_menu_admin():
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT m.*, p.opcion as padre_nombre
+            FROM menu m
+            LEFT JOIN menu p ON m.id_padre = p.id_menu
+            ORDER BY m.id_menu ASC
+        """)
+        return [dict(r) for r in rows]
+
+@sms_router.post("/menu")
+async def create_menu(data: dict):
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            INSERT INTO menu (opcion, tipo_opcion, enlace, id_padre, estado)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING *
+        """, data.get('opcion'), data.get('tipo_opcion', 'opcion'), 
+            data.get('enlace'), data.get('id_padre'), data.get('estado', 'ACTIVO'))
+        
+        new_menu = dict(row)
+        
+        # Create options for all roles for this new menu
+        roles = await conn.fetch("SELECT id_rol FROM rol")
+        for role in roles:
+            await conn.execute("""
+                INSERT INTO opciones (id_opcion, id_rol, id_menu, estado)
+                VALUES ((SELECT COALESCE(MAX(id_opcion),0)+1 FROM opciones), $1, $2, 'INACTIVO')
+            """, role['id_rol'], new_menu['id_menu'])
+        
+        return new_menu
+
+@sms_router.put("/menu/{id}")
+async def update_menu(id: int, data: dict):
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            UPDATE menu SET opcion=$1, tipo_opcion=$2, enlace=$3, id_padre=$4, estado=$5
+            WHERE id_menu = $6
+            RETURNING *
+        """, data.get('opcion'), data.get('tipo_opcion'), data.get('enlace'), 
+            data.get('id_padre'), data.get('estado'), id)
+        return dict(row) if row else {"error": "Not found"}
 
 # ========== Contexto Usuario ==========
 @sms_router.get("/contexto_usuario/{id_area}")
