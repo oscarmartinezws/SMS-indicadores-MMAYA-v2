@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMS - Sistema de Monitoreo Sectorial</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Main Wrapper -->
+    <div id="wrapper">
+        <!-- Sidebar -->
+        <div id="sidebar-wrapper">
+            <div class="sidebar-heading d-flex align-items-center">
+                <div class="logo-box me-3">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div>
+                    <div class="fw-bold">SMS</div>
+                    <small style="font-size: 0.7rem; color: #888;">Monitoreo Sectorial</small>
+                </div>
+            </div>
+            
+            <div class="list-group list-group-flush" id="sidebarAccordion">
+                <!-- Menu loaded dynamically -->
+            </div>
+        </div>
+
+        <!-- Page Content -->
+        <div id="page-content-wrapper">
+            <!-- Top Navbar -->
+            <nav class="navbar navbar-expand-lg">
+                <div class="container-fluid">
+                    <button class="btn btn-link text-dark" id="sidebarToggle">
+                        <i class="fas fa-bars fa-lg"></i>
+                    </button>
+                    
+                    <div class="input-group ms-3" style="max-width: 320px;">
+                        <input type="text" class="form-control" placeholder="Buscar..." id="globalSearch">
+                    </div>
+                    
+                    <div class="ms-auto d-flex align-items-center">
+                        <div class="dropdown">
+                            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" 
+                               id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="me-3 d-none d-md-block">
+                                    <span class="d-block fw-bold" style="font-size: 0.9rem;" id="navUserName">Usuario</span>
+                                    <small class="text-muted" id="navUserRole">Rol</small>
+                                </span>
+                                <div class="avatar d-flex align-items-center justify-content-center">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li class="px-3 py-2 border-bottom">
+                                    <div class="fw-bold" id="dropUserName">Nombre</div>
+                                    <div class="text-muted small" id="dropUserArea">Área</div>
+                                    <div class="text-muted" style="font-size: 0.7rem;">
+                                        <i class="far fa-calendar me-1"></i>
+                                        <span id="dropUserDate">Fecha</span>
+                                    </div>
+                                </li>
+                                <li><a class="dropdown-item" href="#" onclick="openChangePasswordModal()">
+                                    <i class="fas fa-key me-2 text-warning"></i>Cambiar Contraseña
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" id="themeToggleBtn">
+                                    <i class="far fa-moon me-2"></i>Modo Oscuro
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="logout()">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main Content Area -->
+            <div id="main-content">
+                <!-- Welcome Screen -->
+                <div class="text-center" style="padding-top: 80px;">
+                    <div style="width: 80px; height: 80px; background: #000; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                        <i class="fas fa-chart-line text-white fa-2x"></i>
+                    </div>
+                    <h2 class="fw-bold mb-2">Sistema de Monitoreo Sectorial</h2>
+                    <p class="text-muted mb-4">MMAYA - Ministerio de Medio Ambiente y Agua</p>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b6/Escudo_de_Bolivia.svg" 
+                         alt="Escudo de Bolivia" style="max-width: 180px; opacity: 0.8;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal fade" id="changePassModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Cambiar Contraseña</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="changePassForm">
+                        <div class="mb-3">
+                            <label class="form-label">Nueva Contraseña</label>
+                            <input type="password" class="form-control" id="newPass" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Confirmar Contraseña</label>
+                            <input type="password" class="form-control" id="confirmPass" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveNewPassword()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sector Modal -->
+    <div class="modal fade" id="sectorModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="sectorModalLabel">Sector</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="sectorForm">
+                        <input type="hidden" id="sectorId">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre del Sector</label>
+                            <input type="text" class="form-control" id="sectorName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="sectorStatus">
+                                <option value="ACTIVO">ACTIVO</option>
+                                <option value="INACTIVO">INACTIVO</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveSectorBtn">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Entidad Modal -->
+    <div class="modal fade" id="entidadModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="entidadModalLabel">Entidad</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="entidadForm">
+                        <input type="hidden" id="entidadId">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre de la Entidad</label>
+                            <input type="text" class="form-control" id="entidadName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="entidadStatus">
+                                <option value="ACTIVO">ACTIVO</option>
+                                <option value="INACTIVO">INACTIVO</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveEntidadBtn">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Area Modal -->
+    <div class="modal fade" id="areaModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="areaModalLabel">Área Organizacional</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="areaForm">
+                        <input type="hidden" id="areaId">
+                        <div class="mb-3">
+                            <label class="form-label">Entidad</label>
+                            <input type="text" class="form-control" id="areaEntidadName" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nombre del Área</label>
+                            <input type="text" class="form-control" id="areaName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="areaStatus">
+                                <option value="ACTIVO">ACTIVO</option>
+                                <option value="INACTIVO">INACTIVO</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveAreaBtn">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pilar Modal -->
+    <div class="modal fade" id="pilarModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="pilarModalLabel">Pilar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="pilarForm">
+                        <input type="hidden" id="pilarId">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre del Pilar</label>
+                            <input type="text" class="form-control" id="pilarName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="pilarStatus">
+                                <option value="ACTIVO">ACTIVO</option>
+                                <option value="INACTIVO">INACTIVO</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="savePilarBtn">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Eje Modal -->
+    <div class="modal fade" id="ejeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="ejeModalLabel">Eje</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="ejeForm">
+                        <input type="hidden" id="ejeId">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre del Eje</label>
+                            <input type="text" class="form-control" id="ejeName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="ejeStatus">
+                                <option value="ACTIVO">ACTIVO</option>
+                                <option value="INACTIVO">INACTIVO</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveEjeBtn">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meta Modal -->
+    <div class="modal fade" id="metaModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="metaModalLabel">Meta</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="metaForm">
+                        <input type="hidden" id="metaId">
+                        <div class="mb-3">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control" id="metaCode" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción de la Meta</label>
+                            <textarea class="form-control" id="metaName" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="metaStatus">
+                                <option value="ACTIVO">ACTIVO</option>
+                                <option value="INACTIVO">INACTIVO</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveMetaBtn">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resultado Modal -->
+    <div class="modal fade" id="resultadoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="resultadoModalLabel">Resultado</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="resultadoForm">
+                        <input type="hidden" id="resultadoId">
+                        <div class="mb-3">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control" id="resultadoCode" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción del Resultado</label>
+                            <textarea class="form-control" id="resultadoName" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="resultadoStatus">
+                                <option value="ACTIVO">ACTIVO</option>
+                                <option value="INACTIVO">INACTIVO</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveResultadoBtn">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accion Modal -->
+    <div class="modal fade" id="accionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="accionModalLabel">Acción</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="accionForm">
+                        <input type="hidden" id="accionId">
+                        <div class="mb-3">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control" id="accionCode" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción de la Acción</label>
+                            <textarea class="form-control" id="accionName" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="accionStatus">
+                                <option value="ACTIVO">ACTIVO</option>
+                                <option value="INACTIVO">INACTIVO</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveAccionBtn">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usuario Modal -->
+    <div class="modal fade" id="usuarioModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="usuarioModalLabel">Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="usuarioForm">
+                        <input type="hidden" id="usuarioId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nro. Documento</label>
+                                <input type="text" class="form-control" id="usrDoc">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nombre Completo</label>
+                                <input type="text" class="form-control" id="usrNombre" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Usuario</label>
+                                <input type="text" class="form-control" id="usrUsername" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Contraseña</label>
+                                <input type="password" class="form-control" id="usrClave" placeholder="Dejar vacío para mantener">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Área</label>
+                                <select class="form-select" id="usrArea"></select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Rol</label>
+                                <select class="form-select" id="usrRol"></select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="usrEstado">
+                                <option value="ACTIVO">ACTIVO</option>
+                                <option value="INACTIVO">INACTIVO</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveUsuario()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicador Modal -->
+    <div class="modal fade" id="indicadorModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="indicadorModalLabel">Indicador</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="indicadorForm">
+                        <input type="hidden" id="indicadorId">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="fw-bold mb-3 text-muted">Clasificación</h6>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Entidad</label>
+                                    <div class="col-8"><select class="form-select form-select-sm" id="indEntidad"></select></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Área</label>
+                                    <div class="col-8"><select class="form-select form-select-sm" id="indArea"></select></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Sector</label>
+                                    <div class="col-8"><select class="form-select form-select-sm" id="indSector"></select></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Pilar</label>
+                                    <div class="col-8"><select class="form-select form-select-sm" id="indPilar"></select></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Eje</label>
+                                    <div class="col-8"><select class="form-select form-select-sm" id="indEje"></select></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Meta</label>
+                                    <div class="col-8"><select class="form-select form-select-sm" id="indMeta"></select></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Resultado</label>
+                                    <div class="col-8"><select class="form-select form-select-sm" id="indResultado"></select></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Cód. Acción</label>
+                                    <div class="col-8"><input type="text" class="form-control form-control-sm" id="indCodAccion"></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Acción</label>
+                                    <div class="col-8"><select class="form-select form-select-sm" id="indAccion"></select></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="fw-bold mb-3 text-muted">Datos del Indicador</h6>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Código</label>
+                                    <div class="col-8"><input type="text" class="form-control form-control-sm" id="indCodigo" required></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Indicador</label>
+                                    <div class="col-8"><textarea class="form-control form-control-sm" id="indIndicador" rows="3" required></textarea></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Fórmula</label>
+                                    <div class="col-8"><textarea class="form-control form-control-sm" id="indFormula" rows="2"></textarea></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Año Base</label>
+                                    <div class="col-8"><input type="number" class="form-control form-control-sm" id="indAnioBase"></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Línea Base</label>
+                                    <div class="col-8"><input type="text" class="form-control form-control-sm" id="indLineaBase"></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Año Logro</label>
+                                    <div class="col-8"><input type="number" class="form-control form-control-sm" id="indAnioLogro"></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Logro</label>
+                                    <div class="col-8"><input type="text" class="form-control form-control-sm" id="indLogro"></div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-4 col-form-label">Estado</label>
+                                    <div class="col-8">
+                                        <select class="form-select form-select-sm" id="indEstado">
+                                            <option value="ACTIVO">ACTIVO</option>
+                                            <option value="INACTIVO">INACTIVO</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveIndicadorBtn">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Role Modal -->
+    <div class="modal fade" id="roleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="roleModalLabel">Rol</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="roleForm">
+                        <input type="hidden" id="roleId">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre del Rol</label>
+                            <input type="text" class="form-control" id="roleName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="roleState">
+                                <option value="ACTIVO">ACTIVO</option>
+                                <option value="INACTIVO">INACTIVO</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveRole()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Modal -->
+    <div class="modal fade" id="menuModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="menuModalLabel">Menú</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="menuForm">
+                        <input type="hidden" id="menuId">
+                        <div class="mb-3">
+                            <label class="form-label">Grupo Padre</label>
+                            <select class="form-select" id="menuPadre"></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Opción</label>
+                            <input type="text" class="form-control" id="menuOpcion" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tipo</label>
+                            <select class="form-select" id="menuTipo">
+                                <option value="opcion">Opción</option>
+                                <option value="separador">Separador</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Enlace JS</label>
+                            <input type="text" class="form-control" id="menuEnlace">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="menuEstado">
+                                <option value="ACTIVO">ACTIVO</option>
+                                <option value="INACTIVO">INACTIVO</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveMenu()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Base URL -->
+    <script>
+        // Configuración dinámica del API URL
+        const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3001/api'
+            : `${window.location.protocol}//${window.location.hostname}:3001/api`;
+        
+        // Get stored token
+        function getAuthHeader() {
+            const token = localStorage.getItem('token');
+            return token ? { 'Authorization': `Bearer ${token}` } : {};
+        }
+    </script>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/sector.js"></script>
+    <script src="js/entidad.js"></script>
+    <script src="js/pilar.js"></script>
+    <script src="js/eje.js"></script>
+    <script src="js/meta.js"></script>
+    <script src="js/resultado.js"></script>
+    <script src="js/accion.js"></script>
+    <script src="js/indicador.js"></script>
+    <script src="js/rendicion.js"></script>
+    <script src="js/usuarios.js"></script>
+    <script src="js/roles.js"></script>
+    <script src="js/menu.js"></script>
+</body>
+</html>
