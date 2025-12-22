@@ -5,7 +5,6 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
 // Styles
 const styles = {
-  // Colors
   black: '#000000',
   white: '#FFFFFF',
   gray100: '#F6F6F6',
@@ -19,6 +18,18 @@ const styles = {
   gray900: '#1A1A1A',
   green: '#09AA5B',
   red: '#E11900',
+};
+
+// Table row style - reduced height
+const rowStyle = { padding: '8px 12px', fontSize: '0.85rem' };
+const headerStyle = {
+  background: styles.black,
+  color: styles.white,
+  padding: '10px 12px',
+  textAlign: 'left',
+  fontWeight: 600,
+  fontSize: '0.75rem',
+  textTransform: 'uppercase'
 };
 
 // Login Component
@@ -114,7 +125,7 @@ function Login({ onLogin }) {
               placeholder="Ingrese su usuario"
               style={{
                 width: '100%',
-                padding: 16,
+                padding: 14,
                 fontSize: '1rem',
                 border: `2px solid ${styles.gray300}`,
                 borderRadius: 8,
@@ -141,7 +152,7 @@ function Login({ onLogin }) {
               placeholder="Ingrese su contraseña"
               style={{
                 width: '100%',
-                padding: 16,
+                padding: 14,
                 fontSize: '1rem',
                 border: `2px solid ${styles.gray300}`,
                 borderRadius: 8,
@@ -156,7 +167,7 @@ function Login({ onLogin }) {
             disabled={loading}
             style={{
               width: '100%',
-              padding: 16,
+              padding: 14,
               fontSize: '1rem',
               fontWeight: 600,
               background: styles.black,
@@ -196,8 +207,10 @@ function Login({ onLogin }) {
   );
 }
 
-// Sidebar Component
-function Sidebar({ user, menuItems, activeView, setActiveView, collapsed, setCollapsed }) {
+// Sidebar Component with Accordion
+function Sidebar({ user, menuItems, activeView, setActiveView, collapsed }) {
+  const [expandedGroups, setExpandedGroups] = useState({});
+
   const getIcon = (name) => {
     const icons = {
       'CONFIGURACION': '⚙️',
@@ -205,6 +218,7 @@ function Sidebar({ user, menuItems, activeView, setActiveView, collapsed, setCol
       'OPERACIONES': '📈',
       'Usuarios': '👥',
       'Roles': '🔐',
+      'Rol': '🔐',
       'Menu': '☰',
       'Sector': '🏭',
       'Entidad': '🏛️',
@@ -220,29 +234,27 @@ function Sidebar({ user, menuItems, activeView, setActiveView, collapsed, setCol
     return icons[name] || '📄';
   };
 
-  const handleMenuClick = (item) => {
-    if (item.enlace) {
-      setActiveView(item.enlace);
-    }
+  const toggleGroup = (groupId) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupId]: !prev[groupId]
+    }));
   };
 
   // Group items by parent
   const groups = {};
-  const rootItems = [];
+  const separators = [];
   
   menuItems.forEach(item => {
     if (item.tipo_opcion === 'separador') {
-      groups[item.id_menu] = { header: item, items: [] };
+      separators.push(item);
+      groups[item.id_menu] = [];
     }
   });
   
   menuItems.forEach(item => {
-    if (item.tipo_opcion === 'opcion') {
-      if (item.id_padre && groups[item.id_padre]) {
-        groups[item.id_padre].items.push(item);
-      } else {
-        rootItems.push(item);
-      }
+    if (item.tipo_opcion === 'opcion' && item.id_padre && groups[item.id_padre]) {
+      groups[item.id_padre].push(item);
     }
   });
 
@@ -261,15 +273,15 @@ function Sidebar({ user, menuItems, activeView, setActiveView, collapsed, setCol
     }}>
       {/* Logo */}
       <div style={{
-        padding: '24px 20px',
+        padding: '20px 16px',
         borderBottom: `1px solid ${styles.gray800}`,
         display: 'flex',
         alignItems: 'center',
         gap: 12
       }}>
         <div style={{
-          width: 40,
-          height: 40,
+          width: 36,
+          height: 36,
           background: styles.white,
           borderRadius: 8,
           display: 'flex',
@@ -277,12 +289,12 @@ function Sidebar({ user, menuItems, activeView, setActiveView, collapsed, setCol
           justifyContent: 'center',
           flexShrink: 0
         }}>
-          <span style={{ fontSize: 20 }}>📊</span>
+          <span style={{ fontSize: 18 }}>📊</span>
         </div>
         {!collapsed && (
           <div>
             <div style={{ color: styles.white, fontWeight: 600, fontSize: '0.85rem' }}>SMS</div>
-            <div style={{ color: styles.gray500, fontSize: '0.7rem' }}>Monitoreo Sectorial</div>
+            <div style={{ color: styles.gray500, fontSize: '0.65rem' }}>Monitoreo Sectorial</div>
           </div>
         )}
       </div>
@@ -291,48 +303,67 @@ function Sidebar({ user, menuItems, activeView, setActiveView, collapsed, setCol
       <div
         onClick={() => setActiveView('home')}
         style={{
-          padding: '12px 20px',
+          padding: '10px 16px',
           color: activeView === 'home' ? styles.white : styles.gray400,
           background: activeView === 'home' ? styles.gray800 : 'transparent',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: 12
+          gap: 10,
+          fontSize: '0.85rem'
         }}
       >
         <span>🏠</span>
         {!collapsed && <span>Inicio</span>}
       </div>
 
-      {/* Menu Groups */}
-      {Object.values(groups).map(group => (
-        <div key={group.header.id_menu}>
-          <div style={{
-            padding: '12px 20px',
-            background: styles.gray900,
-            color: styles.white,
-            fontWeight: 600,
-            fontSize: '0.75rem',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            marginTop: 8,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12
-          }}>
-            <span>{getIcon(group.header.opcion)}</span>
-            {!collapsed && <span>{group.header.opcion}</span>}
+      {/* Menu Groups - Accordion Style */}
+      {separators.map(sep => (
+        <div key={sep.id_menu}>
+          {/* Group Header - Clickable to expand/collapse */}
+          <div
+            onClick={() => toggleGroup(sep.id_menu)}
+            style={{
+              padding: '10px 16px',
+              background: styles.gray900,
+              color: styles.white,
+              fontWeight: 600,
+              fontSize: '0.7rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginTop: 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span>{getIcon(sep.opcion)}</span>
+              {!collapsed && <span>{sep.opcion}</span>}
+            </div>
+            {!collapsed && (
+              <span style={{ 
+                fontSize: '0.6rem', 
+                transition: 'transform 0.2s',
+                transform: expandedGroups[sep.id_menu] ? 'rotate(180deg)' : 'rotate(0deg)'
+              }}>▼</span>
+            )}
           </div>
-          {!collapsed && group.items.map(item => (
+          
+          {/* Group Items - Collapsible */}
+          {!collapsed && expandedGroups[sep.id_menu] && groups[sep.id_menu]?.map(item => (
             <div
               key={item.id_menu}
-              onClick={() => handleMenuClick(item)}
+              onClick={() => item.enlace && setActiveView(item.enlace)}
               style={{
-                padding: '12px 20px 12px 52px',
+                padding: '8px 16px 8px 44px',
                 color: activeView === item.enlace ? styles.white : styles.gray400,
                 background: activeView === item.enlace ? styles.gray800 : 'transparent',
                 cursor: 'pointer',
-                fontSize: '0.85rem'
+                fontSize: '0.8rem',
+                transition: 'all 0.15s ease'
               }}
             >
               {item.opcion}
@@ -340,31 +371,11 @@ function Sidebar({ user, menuItems, activeView, setActiveView, collapsed, setCol
           ))}
         </div>
       ))}
-
-      {/* Root Items */}
-      {rootItems.map(item => (
-        <div
-          key={item.id_menu}
-          onClick={() => handleMenuClick(item)}
-          style={{
-            padding: '12px 20px',
-            color: activeView === item.enlace ? styles.white : styles.gray400,
-            background: activeView === item.enlace ? styles.gray800 : 'transparent',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12
-          }}
-        >
-          <span>{getIcon(item.opcion)}</span>
-          {!collapsed && <span>{item.opcion}</span>}
-        </div>
-      ))}
     </div>
   );
 }
 
-// Generic CRUD Table Component
+// Generic CRUD Table Component with reduced row height
 function CrudTable({ title, endpoint, columns, formFields, idField = 'id' }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -428,30 +439,31 @@ function CrudTable({ title, endpoint, columns, formFields, idField = 'id' }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2 style={{ fontWeight: 700, fontSize: '1.5rem' }}>{title}</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ fontWeight: 700, fontSize: '1.3rem' }}>{title}</h2>
         <button
           onClick={() => openModal()}
           style={{
-            padding: '12px 24px',
+            padding: '10px 20px',
             background: styles.black,
             color: styles.white,
             border: 'none',
-            borderRadius: 8,
+            borderRadius: 6,
             fontWeight: 600,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            fontSize: '0.85rem'
           }}
         >
-          + Nuevo
+          + Adicionar
         </button>
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40 }}>Cargando...</div>
+        <div style={{ textAlign: 'center', padding: 30 }}>Cargando...</div>
       ) : (
         <div style={{
           background: styles.white,
-          borderRadius: 12,
+          borderRadius: 8,
           overflow: 'hidden',
           boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
         }}>
@@ -459,36 +471,21 @@ function CrudTable({ title, endpoint, columns, formFields, idField = 'id' }) {
             <thead>
               <tr>
                 {columns.map(col => (
-                  <th key={col.key} style={{
-                    background: styles.black,
-                    color: styles.white,
-                    padding: 16,
-                    textAlign: 'left',
-                    fontWeight: 600,
-                    fontSize: '0.8rem',
-                    textTransform: 'uppercase'
-                  }}>{col.label}</th>
+                  <th key={col.key} style={headerStyle}>{col.label}</th>
                 ))}
-                <th style={{
-                  background: styles.black,
-                  color: styles.white,
-                  padding: 16,
-                  textAlign: 'center',
-                  fontWeight: 600,
-                  fontSize: '0.8rem'
-                }}>Acciones</th>
+                <th style={{ ...headerStyle, textAlign: 'center' }}>Operación</th>
               </tr>
             </thead>
             <tbody>
               {data.map((item, idx) => (
                 <tr key={item[idField] || idx} style={{ borderBottom: `1px solid ${styles.gray200}` }}>
                   {columns.map(col => (
-                    <td key={col.key} style={{ padding: '14px 16px', fontSize: '0.9rem' }}>
+                    <td key={col.key} style={rowStyle}>
                       {col.key === 'estado' ? (
                         <span style={{
-                          padding: '4px 12px',
-                          borderRadius: 20,
-                          fontSize: '0.75rem',
+                          padding: '3px 10px',
+                          borderRadius: 12,
+                          fontSize: '0.7rem',
                           fontWeight: 600,
                           background: item[col.key] === 'ACTIVO' ? '#D1FAE5' : '#FEE2E2',
                           color: item[col.key] === 'ACTIVO' ? styles.green : styles.red
@@ -496,18 +493,18 @@ function CrudTable({ title, endpoint, columns, formFields, idField = 'id' }) {
                       ) : item[col.key]}
                     </td>
                   ))}
-                  <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                  <td style={{ ...rowStyle, textAlign: 'center' }}>
                     <button
                       onClick={() => openModal(item)}
                       style={{
-                        padding: '8px 16px',
+                        padding: '4px 12px',
                         background: styles.gray100,
                         border: 'none',
-                        borderRadius: 6,
+                        borderRadius: 4,
                         cursor: 'pointer',
-                        fontSize: '0.85rem'
+                        fontSize: '0.8rem'
                       }}
-                    >Editar</button>
+                    >✏️</button>
                   </td>
                 </tr>
               ))}
@@ -532,24 +529,22 @@ function CrudTable({ title, endpoint, columns, formFields, idField = 'id' }) {
         }}>
           <div style={{
             background: styles.white,
-            borderRadius: 16,
-            padding: 24,
-            maxWidth: 500,
-            width: '90%',
-            maxHeight: '80vh',
-            overflow: 'auto'
+            borderRadius: 12,
+            padding: 20,
+            maxWidth: 450,
+            width: '90%'
           }}>
-            <h3 style={{ marginBottom: 24, fontWeight: 700 }}>
+            <h3 style={{ marginBottom: 16, fontWeight: 700, fontSize: '1.1rem' }}>
               {editItem ? 'Editar' : 'Nuevo'} {title}
             </h3>
 
             {formFields.map(field => (
-              <div key={field.key} style={{ marginBottom: 16 }}>
+              <div key={field.key} style={{ marginBottom: 12 }}>
                 <label style={{
                   display: 'block',
-                  marginBottom: 8,
+                  marginBottom: 6,
                   fontWeight: 600,
-                  fontSize: '0.85rem',
+                  fontSize: '0.8rem',
                   color: styles.gray700
                 }}>{field.label}</label>
                 {field.type === 'select' ? (
@@ -558,10 +553,10 @@ function CrudTable({ title, endpoint, columns, formFields, idField = 'id' }) {
                     onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
                     style={{
                       width: '100%',
-                      padding: 12,
+                      padding: 10,
                       border: `2px solid ${styles.gray300}`,
-                      borderRadius: 8,
-                      fontSize: '0.9rem'
+                      borderRadius: 6,
+                      fontSize: '0.85rem'
                     }}
                   >
                     {field.options.map(opt => (
@@ -572,13 +567,13 @@ function CrudTable({ title, endpoint, columns, formFields, idField = 'id' }) {
                   <textarea
                     value={formData[field.key] || ''}
                     onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
-                    rows={3}
+                    rows={2}
                     style={{
                       width: '100%',
-                      padding: 12,
+                      padding: 10,
                       border: `2px solid ${styles.gray300}`,
-                      borderRadius: 8,
-                      fontSize: '0.9rem',
+                      borderRadius: 6,
+                      fontSize: '0.85rem',
                       resize: 'vertical'
                     }}
                   />
@@ -589,10 +584,10 @@ function CrudTable({ title, endpoint, columns, formFields, idField = 'id' }) {
                     onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
                     style={{
                       width: '100%',
-                      padding: 12,
+                      padding: 10,
                       border: `2px solid ${styles.gray300}`,
-                      borderRadius: 8,
-                      fontSize: '0.9rem',
+                      borderRadius: 6,
+                      fontSize: '0.85rem',
                       boxSizing: 'border-box'
                     }}
                   />
@@ -600,30 +595,32 @@ function CrudTable({ title, endpoint, columns, formFields, idField = 'id' }) {
               </div>
             ))}
 
-            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
               <button
                 onClick={() => setShowModal(false)}
                 style={{
                   flex: 1,
-                  padding: 12,
+                  padding: 10,
                   border: `2px solid ${styles.black}`,
                   background: 'transparent',
-                  borderRadius: 8,
+                  borderRadius: 6,
                   fontWeight: 600,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  fontSize: '0.85rem'
                 }}
               >Cancelar</button>
               <button
                 onClick={saveItem}
                 style={{
                   flex: 1,
-                  padding: 12,
+                  padding: 10,
                   background: styles.black,
                   color: styles.white,
                   border: 'none',
-                  borderRadius: 8,
+                  borderRadius: 6,
                   fontWeight: 600,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  fontSize: '0.85rem'
                 }}
               >Guardar</button>
             </div>
@@ -634,99 +631,557 @@ function CrudTable({ title, endpoint, columns, formFields, idField = 'id' }) {
   );
 }
 
-// Home View
-function HomeView({ user }) {
+// Roles View with Options
+function RolesView() {
+  const [roles, setRoles] = useState([]);
+  const [selectedRoleId, setSelectedRoleId] = useState(null);
+  const [options, setOptions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editRole, setEditRole] = useState(null);
+  const [formData, setFormData] = useState({ rol: '', estado: 'ACTIVO' });
+
+  useEffect(() => {
+    fetchRoles();
+  }, []);
+
+  const fetchRoles = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/sms/roles`);
+      const data = await res.json();
+      setRoles(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchOptions = async (roleId) => {
+    setSelectedRoleId(roleId);
+    try {
+      const res = await fetch(`${API_URL}/api/sms/opciones/${roleId}`);
+      const data = await res.json();
+      setOptions(data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const updateOptionState = async (idOpcion, newState) => {
+    try {
+      await fetch(`${API_URL}/api/sms/opciones/${idOpcion}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: newState })
+      });
+      // Update local state
+      setOptions(prev => prev.map(opt => 
+        opt.id_opcion === idOpcion ? { ...opt, estado: newState } : opt
+      ));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const openModal = (role = null) => {
+    if (role) {
+      setEditRole(role);
+      setFormData({ rol: role.rol, estado: role.estado });
+    } else {
+      setEditRole(null);
+      setFormData({ rol: '', estado: 'ACTIVO' });
+    }
+    setShowModal(true);
+  };
+
+  const saveRole = async () => {
+    if (!formData.rol.trim()) {
+      alert('El nombre del rol es obligatorio');
+      return;
+    }
+
+    try {
+      const method = editRole ? 'PUT' : 'POST';
+      const url = editRole
+        ? `${API_URL}/api/sms/roles/${editRole.id_rol}`
+        : `${API_URL}/api/sms/roles`;
+      
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (res.ok) {
+        setShowModal(false);
+        fetchRoles();
+      } else {
+        const err = await res.json();
+        alert(err.detail || 'Error al guardar');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
-    <div style={{ textAlign: 'center', paddingTop: 80 }}>
-      <div style={{
-        width: 80,
-        height: 80,
-        background: styles.black,
-        borderRadius: 20,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        margin: '0 auto 24px'
-      }}>
-        <span style={{ fontSize: 32 }}>📊</span>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ fontWeight: 700, fontSize: '1.3rem' }}>ROLES</h2>
+        <button
+          onClick={() => openModal()}
+          style={{
+            padding: '10px 20px',
+            background: styles.black,
+            color: styles.white,
+            border: 'none',
+            borderRadius: 6,
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.85rem'
+          }}
+        >
+          + Adicionar
+        </button>
       </div>
-      <h2 style={{ fontWeight: 700, marginBottom: 8 }}>Sistema de Monitoreo Sectorial</h2>
-      <p style={{ color: styles.gray600, marginBottom: 32 }}>MMAYA - Ministerio de Medio Ambiente y Agua</p>
-      <p style={{ color: styles.gray500 }}>Bienvenido, {user?.nombre || user?.username}</p>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 30 }}>Cargando...</div>
+      ) : (
+        <>
+          {/* Roles Table */}
+          <div style={{
+            background: styles.white,
+            borderRadius: 8,
+            overflow: 'hidden',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            marginBottom: 24
+          }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={headerStyle}>ID ROL</th>
+                  <th style={headerStyle}>ROL</th>
+                  <th style={headerStyle}>ESTADO</th>
+                  <th style={{ ...headerStyle, textAlign: 'center' }}>OPERACIÓN</th>
+                </tr>
+              </thead>
+              <tbody>
+                {roles.map(role => (
+                  <tr 
+                    key={role.id_rol} 
+                    onClick={() => fetchOptions(role.id_rol)}
+                    style={{ 
+                      borderBottom: `1px solid ${styles.gray200}`,
+                      cursor: 'pointer',
+                      background: selectedRoleId === role.id_rol ? styles.gray100 : 'transparent'
+                    }}
+                  >
+                    <td style={{ ...rowStyle, textAlign: 'center' }}>{role.id_rol}</td>
+                    <td style={rowStyle}>{role.rol}</td>
+                    <td style={{ ...rowStyle, textAlign: 'center' }}>
+                      <span style={{
+                        padding: '3px 10px',
+                        borderRadius: 12,
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        background: role.estado === 'ACTIVO' ? '#D1FAE5' : '#FEE2E2',
+                        color: role.estado === 'ACTIVO' ? styles.green : styles.red
+                      }}>{role.estado}</span>
+                    </td>
+                    <td style={{ ...rowStyle, textAlign: 'center' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openModal(role); }}
+                        style={{
+                          padding: '4px 12px',
+                          background: styles.gray100,
+                          border: 'none',
+                          borderRadius: 4,
+                          cursor: 'pointer',
+                          fontSize: '0.8rem'
+                        }}
+                      >✏️</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Options Table */}
+          <h4 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 12, color: styles.gray700 }}>ACCESO</h4>
+          <div style={{
+            background: styles.white,
+            borderRadius: 8,
+            overflow: 'hidden',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+          }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={headerStyle}>ID OPCIÓN</th>
+                  <th style={headerStyle}>OPCIÓN</th>
+                  <th style={{ ...headerStyle, textAlign: 'center' }}>ESTADO</th>
+                </tr>
+              </thead>
+              <tbody>
+                {options.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} style={{ ...rowStyle, textAlign: 'center', color: styles.gray500 }}>
+                      Seleccione un Rol para ver sus accesos
+                    </td>
+                  </tr>
+                ) : (
+                  options.map(opt => (
+                    <tr key={opt.id_opcion} style={{ borderBottom: `1px solid ${styles.gray200}` }}>
+                      <td style={{ ...rowStyle, textAlign: 'center' }}>{opt.id_opcion}</td>
+                      <td style={rowStyle}>{opt.opcion}</td>
+                      <td style={{ ...rowStyle, textAlign: 'center' }}>
+                        <select
+                          value={opt.estado}
+                          onChange={(e) => updateOptionState(opt.id_opcion, e.target.value)}
+                          style={{
+                            padding: '4px 8px',
+                            border: 'none',
+                            borderRadius: 4,
+                            background: styles.gray100,
+                            fontSize: '0.8rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="ACTIVO">ACTIVO</option>
+                          <option value="INACTIVO">INACTIVO</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {/* Modal */}
+      {showModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000
+        }}>
+          <div style={{
+            background: styles.white,
+            borderRadius: 12,
+            padding: 20,
+            maxWidth: 400,
+            width: '90%'
+          }}>
+            <h3 style={{ marginBottom: 16, fontWeight: 700, fontSize: '1.1rem' }}>
+              {editRole ? 'Editar Rol' : 'Nuevo Rol'}
+            </h3>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem' }}>Nombre del Rol</label>
+              <input
+                type="text"
+                value={formData.rol}
+                onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: 10,
+                  border: `2px solid ${styles.gray300}`,
+                  borderRadius: 6,
+                  fontSize: '0.85rem',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem' }}>Estado</label>
+              <select
+                value={formData.estado}
+                onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: 10,
+                  border: `2px solid ${styles.gray300}`,
+                  borderRadius: 6,
+                  fontSize: '0.85rem'
+                }}
+              >
+                <option value="ACTIVO">ACTIVO</option>
+                <option value="INACTIVO">INACTIVO</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{ flex: 1, padding: 10, border: `2px solid ${styles.black}`, background: 'transparent', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}
+              >Cancelar</button>
+              <button
+                onClick={saveRole}
+                style={{ flex: 1, padding: 10, background: styles.black, color: styles.white, border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}
+              >Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// Indicadores View
-function IndicadoresView() {
-  const [data, setData] = useState([]);
+// Menu Admin View
+function MenuAdminView() {
+  const [menus, setMenus] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editMenu, setEditMenu] = useState(null);
+  const [formData, setFormData] = useState({});
+  const [separadores, setSeparadores] = useState([]);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/sms/matriz_parametros`)
-      .then(res => res.json())
-      .then(json => setData(json))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    fetchMenus();
   }, []);
+
+  const fetchMenus = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/sms/menu_admin`);
+      const data = await res.json();
+      setMenus(data);
+      setSeparadores(data.filter(m => m.tipo_opcion === 'separador'));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openModal = (menu = null) => {
+    if (menu) {
+      setEditMenu(menu);
+      setFormData({
+        opcion: menu.opcion,
+        tipo_opcion: menu.tipo_opcion,
+        enlace: menu.enlace || '',
+        id_padre: menu.id_padre || '',
+        estado: menu.estado
+      });
+    } else {
+      setEditMenu(null);
+      setFormData({ opcion: '', tipo_opcion: 'opcion', enlace: '', id_padre: '', estado: 'ACTIVO' });
+    }
+    setShowModal(true);
+  };
+
+  const saveMenu = async () => {
+    if (!formData.opcion.trim()) {
+      alert('El nombre de la opción es obligatorio');
+      return;
+    }
+
+    try {
+      const method = editMenu ? 'PUT' : 'POST';
+      const url = editMenu
+        ? `${API_URL}/api/sms/menu/${editMenu.id_menu}`
+        : `${API_URL}/api/sms/menu`;
+      
+      const body = {
+        ...formData,
+        id_padre: formData.id_padre || null
+      };
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (res.ok) {
+        setShowModal(false);
+        fetchMenus();
+      } else {
+        const err = await res.json();
+        alert(err.detail || 'Error al guardar');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <div>
-      <h2 style={{ fontWeight: 700, fontSize: '1.5rem', marginBottom: 24 }}>Banco de Indicadores</h2>
-      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ fontWeight: 700, fontSize: '1.3rem' }}>GESTIÓN DE MENÚ</h2>
+        <button
+          onClick={() => openModal()}
+          style={{
+            padding: '10px 20px',
+            background: styles.black,
+            color: styles.white,
+            border: 'none',
+            borderRadius: 6,
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.85rem'
+          }}
+        >
+          + Adicionar
+        </button>
+      </div>
+
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40 }}>Cargando...</div>
+        <div style={{ textAlign: 'center', padding: 30 }}>Cargando...</div>
       ) : (
         <div style={{
           background: styles.white,
-          borderRadius: 12,
-          overflow: 'auto',
+          borderRadius: 8,
+          overflow: 'hidden',
           boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
         }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1200 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                {['ID', 'Código', 'Indicador', 'Meta', 'Resultado', 'Acción', 'Año Base', 'Línea Base', 'Año Logro', 'Logro', 'Estado'].map(h => (
-                  <th key={h} style={{
-                    background: styles.black,
-                    color: styles.white,
-                    padding: 12,
-                    textAlign: 'left',
-                    fontWeight: 600,
-                    fontSize: '0.75rem',
-                    textTransform: 'uppercase',
-                    whiteSpace: 'nowrap'
-                  }}>{h}</th>
-                ))}
+                <th style={headerStyle}>ID OPCIÓN</th>
+                <th style={headerStyle}>OPCIONES</th>
+                <th style={headerStyle}>TIPO OPCIÓN</th>
+                <th style={headerStyle}>ESTADO</th>
+                <th style={{ ...headerStyle, textAlign: 'center' }}>OPERACIÓN</th>
               </tr>
             </thead>
             <tbody>
-              {data.map(item => (
-                <tr key={item.id_indicador} style={{ borderBottom: `1px solid ${styles.gray200}` }}>
-                  <td style={{ padding: 12, fontSize: '0.85rem' }}>{item.id_indicador}</td>
-                  <td style={{ padding: 12, fontSize: '0.85rem' }}>{item.codi}</td>
-                  <td style={{ padding: 12, fontSize: '0.85rem', maxWidth: 300 }}>{item.indicador_resultado}</td>
-                  <td style={{ padding: 12, fontSize: '0.85rem' }}>{item.codi_meta}</td>
-                  <td style={{ padding: 12, fontSize: '0.85rem' }}>{item.codi_resultado}</td>
-                  <td style={{ padding: 12, fontSize: '0.85rem' }}>{item.codi_accion}</td>
-                  <td style={{ padding: 12, fontSize: '0.85rem' }}>{item.anio_base}</td>
-                  <td style={{ padding: 12, fontSize: '0.85rem' }}>{item.linea_base}</td>
-                  <td style={{ padding: 12, fontSize: '0.85rem' }}>{item.anio_logro}</td>
-                  <td style={{ padding: 12, fontSize: '0.85rem' }}>{item.logro}</td>
-                  <td style={{ padding: 12 }}>
+              {menus.map(menu => (
+                <tr key={menu.id_menu} style={{ borderBottom: `1px solid ${styles.gray200}` }}>
+                  <td style={{ ...rowStyle, textAlign: 'center' }}>{menu.id_menu}</td>
+                  <td style={rowStyle}>{menu.opcion}</td>
+                  <td style={{ ...rowStyle, textAlign: 'center' }}>{menu.tipo_opcion}</td>
+                  <td style={{ ...rowStyle, textAlign: 'center' }}>
                     <span style={{
-                      padding: '4px 12px',
-                      borderRadius: 20,
-                      fontSize: '0.75rem',
+                      padding: '3px 10px',
+                      borderRadius: 12,
+                      fontSize: '0.7rem',
                       fontWeight: 600,
-                      background: item.estado === 'ACTIVO' ? '#D1FAE5' : '#FEE2E2',
-                      color: item.estado === 'ACTIVO' ? styles.green : styles.red
-                    }}>{item.estado}</span>
+                      background: menu.estado === 'ACTIVO' ? '#D1FAE5' : '#FEE2E2',
+                      color: menu.estado === 'ACTIVO' ? styles.green : styles.red
+                    }}>{menu.estado}</span>
+                  </td>
+                  <td style={{ ...rowStyle, textAlign: 'center' }}>
+                    <button
+                      onClick={() => openModal(menu)}
+                      style={{
+                        padding: '4px 12px',
+                        background: styles.gray100,
+                        border: 'none',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontSize: '0.8rem'
+                      }}
+                    >✏️</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Modal */}
+      {showModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000
+        }}>
+          <div style={{
+            background: styles.white,
+            borderRadius: 12,
+            padding: 20,
+            maxWidth: 450,
+            width: '90%'
+          }}>
+            <h3 style={{ marginBottom: 16, fontWeight: 700, fontSize: '1.1rem' }}>
+              {editMenu ? 'Editar Menú' : 'Nuevo Menú'}
+            </h3>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem' }}>Grupo Padre</label>
+              <select
+                value={formData.id_padre || ''}
+                onChange={(e) => setFormData({ ...formData, id_padre: e.target.value })}
+                style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem' }}
+              >
+                <option value="">Ninguno (Raíz)</option>
+                {separadores.filter(s => s.id_menu !== editMenu?.id_menu).map(sep => (
+                  <option key={sep.id_menu} value={sep.id_menu}>{sep.opcion}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem' }}>Opción</label>
+              <input
+                type="text"
+                value={formData.opcion}
+                onChange={(e) => setFormData({ ...formData, opcion: e.target.value })}
+                style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem' }}>Tipo</label>
+              <select
+                value={formData.tipo_opcion}
+                onChange={(e) => setFormData({ ...formData, tipo_opcion: e.target.value })}
+                style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem' }}
+              >
+                <option value="opcion">Opción</option>
+                <option value="separador">Separador</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem' }}>Enlace JS</label>
+              <input
+                type="text"
+                value={formData.enlace}
+                onChange={(e) => setFormData({ ...formData, enlace: e.target.value })}
+                style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem' }}>Estado</label>
+              <select
+                value={formData.estado}
+                onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
+                style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem' }}
+              >
+                <option value="ACTIVO">ACTIVO</option>
+                <option value="INACTIVO">INACTIVO</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: 10, border: `2px solid ${styles.black}`, background: 'transparent', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>Cancelar</button>
+              <button onClick={saveMenu} style={{ flex: 1, padding: 10, background: styles.black, color: styles.white, border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>Guardar</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -770,6 +1225,15 @@ function UsuariosView() {
   };
 
   const saveItem = async () => {
+    if (!formData.username || !formData.nombre) {
+      alert('Nombre y Usuario son obligatorios');
+      return;
+    }
+    if (!editItem && !formData.clave) {
+      alert('Contraseña es obligatoria para nuevo usuario');
+      return;
+    }
+
     try {
       const method = editItem ? 'PUT' : 'POST';
       const url = editItem
@@ -798,80 +1262,74 @@ function UsuariosView() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2 style={{ fontWeight: 700, fontSize: '1.5rem' }}>Usuarios</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ fontWeight: 700, fontSize: '1.3rem' }}>Usuarios</h2>
         <button
           onClick={() => openModal()}
           style={{
-            padding: '12px 24px',
+            padding: '10px 20px',
             background: styles.black,
             color: styles.white,
             border: 'none',
-            borderRadius: 8,
+            borderRadius: 6,
             fontWeight: 600,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            fontSize: '0.85rem'
           }}
         >
-          + Nuevo Usuario
+          + Adicionar
         </button>
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40 }}>Cargando...</div>
+        <div style={{ textAlign: 'center', padding: 30 }}>Cargando...</div>
       ) : (
         <div style={{
           background: styles.white,
-          borderRadius: 12,
+          borderRadius: 8,
           overflow: 'auto',
           boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
         }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                {['ID', 'Documento', 'Nombre', 'Usuario', 'Área', 'Rol', 'Estado', 'Acciones'].map(h => (
-                  <th key={h} style={{
-                    background: styles.black,
-                    color: styles.white,
-                    padding: 16,
-                    textAlign: 'left',
-                    fontWeight: 600,
-                    fontSize: '0.8rem',
-                    textTransform: 'uppercase'
-                  }}>{h}</th>
+                {['ID', 'Documento', 'Nombre', 'Usuario', 'Fecha', 'Área', 'Rol', 'Estado', 'Op'].map(h => (
+                  <th key={h} style={headerStyle}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {data.map(item => (
                 <tr key={item.id_usuario} style={{ borderBottom: `1px solid ${styles.gray200}` }}>
-                  <td style={{ padding: '14px 16px', fontSize: '0.9rem' }}>{item.id_usuario}</td>
-                  <td style={{ padding: '14px 16px', fontSize: '0.9rem' }}>{item.nro_documento || '-'}</td>
-                  <td style={{ padding: '14px 16px', fontSize: '0.9rem' }}>{item.nombre}</td>
-                  <td style={{ padding: '14px 16px', fontSize: '0.9rem' }}>{item.username}</td>
-                  <td style={{ padding: '14px 16px', fontSize: '0.9rem' }}>{item.area || '-'}</td>
-                  <td style={{ padding: '14px 16px', fontSize: '0.9rem' }}>{item.rol || '-'}</td>
-                  <td style={{ padding: '14px 16px' }}>
+                  <td style={{ ...rowStyle, textAlign: 'center' }}>{item.id_usuario}</td>
+                  <td style={rowStyle}>{item.nro_documento || '-'}</td>
+                  <td style={rowStyle}>{item.nombre}</td>
+                  <td style={rowStyle}>{item.username}</td>
+                  <td style={rowStyle}>{item.fecha_creacion?.split('T')[0] || '-'}</td>
+                  <td style={rowStyle}>{item.area || '-'}</td>
+                  <td style={rowStyle}>{item.rol || '-'}</td>
+                  <td style={{ ...rowStyle, textAlign: 'center' }}>
                     <span style={{
-                      padding: '4px 12px',
-                      borderRadius: 20,
-                      fontSize: '0.75rem',
+                      padding: '3px 10px',
+                      borderRadius: 12,
+                      fontSize: '0.7rem',
                       fontWeight: 600,
                       background: item.estado === 'ACTIVO' ? '#D1FAE5' : '#FEE2E2',
                       color: item.estado === 'ACTIVO' ? styles.green : styles.red
                     }}>{item.estado}</span>
                   </td>
-                  <td style={{ padding: '14px 16px' }}>
+                  <td style={{ ...rowStyle, textAlign: 'center' }}>
                     <button
                       onClick={() => openModal(item)}
                       style={{
-                        padding: '8px 16px',
+                        padding: '4px 12px',
                         background: styles.gray100,
                         border: 'none',
-                        borderRadius: 6,
+                        borderRadius: 4,
                         cursor: 'pointer',
-                        fontSize: '0.85rem'
+                        fontSize: '0.8rem'
                       }}
-                    >Editar</button>
+                    >✏️</button>
                   </td>
                 </tr>
               ))}
@@ -896,104 +1354,156 @@ function UsuariosView() {
         }}>
           <div style={{
             background: styles.white,
-            borderRadius: 16,
-            padding: 24,
-            maxWidth: 600,
-            width: '90%'
+            borderRadius: 12,
+            padding: 20,
+            maxWidth: 550,
+            width: '95%'
           }}>
-            <h3 style={{ marginBottom: 24, fontWeight: 700 }}>
+            <h3 style={{ marginBottom: 16, fontWeight: 700, fontSize: '1.1rem' }}>
               {editItem ? 'Editar' : 'Nuevo'} Usuario
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, fontSize: '0.85rem' }}>Nro. Documento</label>
-                <input
-                  type="text"
-                  value={formData.nro_documento || ''}
-                  onChange={(e) => setFormData({ ...formData, nro_documento: e.target.value })}
-                  style={{ width: '100%', padding: 12, border: `2px solid ${styles.gray300}`, borderRadius: 8, boxSizing: 'border-box' }}
-                />
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem' }}>Nro. Documento</label>
+                <input type="text" value={formData.nro_documento || ''} onChange={(e) => setFormData({ ...formData, nro_documento: e.target.value })}
+                  style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, fontSize: '0.85rem' }}>Nombre Completo *</label>
-                <input
-                  type="text"
-                  value={formData.nombre || ''}
-                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  style={{ width: '100%', padding: 12, border: `2px solid ${styles.gray300}`, borderRadius: 8, boxSizing: 'border-box' }}
-                  required
-                />
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem' }}>Nombre *</label>
+                <input type="text" value={formData.nombre || ''} onChange={(e) => setFormData({ ...formData, nombre: e.target.value })} required
+                  style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, fontSize: '0.85rem' }}>Usuario *</label>
-                <input
-                  type="text"
-                  value={formData.username || ''}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  style={{ width: '100%', padding: 12, border: `2px solid ${styles.gray300}`, borderRadius: 8, boxSizing: 'border-box' }}
-                  required
-                />
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem' }}>Usuario *</label>
+                <input type="text" value={formData.username || ''} onChange={(e) => setFormData({ ...formData, username: e.target.value })} required
+                  style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, fontSize: '0.85rem' }}>Contraseña {editItem ? '(vacío = mantener)' : '*'}</label>
-                <input
-                  type="password"
-                  value={formData.clave || ''}
-                  onChange={(e) => setFormData({ ...formData, clave: e.target.value })}
-                  style={{ width: '100%', padding: 12, border: `2px solid ${styles.gray300}`, borderRadius: 8, boxSizing: 'border-box' }}
-                />
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem' }}>Contraseña {editItem ? '(vacío = mantener)' : '*'}</label>
+                <input type="password" value={formData.clave || ''} onChange={(e) => setFormData({ ...formData, clave: e.target.value })}
+                  style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, fontSize: '0.85rem' }}>Área</label>
-                <select
-                  value={formData.id_area || ''}
-                  onChange={(e) => setFormData({ ...formData, id_area: e.target.value ? parseInt(e.target.value) : null })}
-                  style={{ width: '100%', padding: 12, border: `2px solid ${styles.gray300}`, borderRadius: 8 }}
-                >
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem' }}>Área</label>
+                <select value={formData.id_area || ''} onChange={(e) => setFormData({ ...formData, id_area: e.target.value ? parseInt(e.target.value) : null })}
+                  style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem' }}>
                   <option value="">-- Seleccionar --</option>
-                  {areas.map(a => (
-                    <option key={a.id} value={a.id}>{a.nombre}</option>
-                  ))}
+                  {areas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, fontSize: '0.85rem' }}>Rol</label>
-                <select
-                  value={formData.id_rol || ''}
-                  onChange={(e) => setFormData({ ...formData, id_rol: e.target.value ? parseInt(e.target.value) : null })}
-                  style={{ width: '100%', padding: 12, border: `2px solid ${styles.gray300}`, borderRadius: 8 }}
-                >
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem' }}>Rol</label>
+                <select value={formData.id_rol || ''} onChange={(e) => setFormData({ ...formData, id_rol: e.target.value ? parseInt(e.target.value) : null })}
+                  style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem' }}>
                   <option value="">-- Seleccionar --</option>
-                  {roles.map(r => (
-                    <option key={r.id_rol} value={r.id_rol}>{r.rol}</option>
-                  ))}
+                  {roles.map(r => <option key={r.id_rol} value={r.id_rol}>{r.rol}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, fontSize: '0.85rem' }}>Estado</label>
-                <select
-                  value={formData.estado || 'ACTIVO'}
-                  onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-                  style={{ width: '100%', padding: 12, border: `2px solid ${styles.gray300}`, borderRadius: 8 }}
-                >
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem' }}>Estado</label>
+                <select value={formData.estado || 'ACTIVO'} onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
+                  style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem' }}>
                   <option value="ACTIVO">ACTIVO</option>
                   <option value="INACTIVO">INACTIVO</option>
                 </select>
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-              <button
-                onClick={() => setShowModal(false)}
-                style={{ flex: 1, padding: 12, border: `2px solid ${styles.black}`, background: 'transparent', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}
-              >Cancelar</button>
-              <button
-                onClick={saveItem}
-                style={{ flex: 1, padding: 12, background: styles.black, color: styles.white, border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}
-              >Guardar</button>
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: 10, border: `2px solid ${styles.black}`, background: 'transparent', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>Cancelar</button>
+              <button onClick={saveItem} style={{ flex: 1, padding: 10, background: styles.black, color: styles.white, border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>Guardar</button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Home View
+function HomeView({ user }) {
+  return (
+    <div style={{ textAlign: 'center', paddingTop: 60 }}>
+      <div style={{
+        width: 70,
+        height: 70,
+        background: styles.black,
+        borderRadius: 16,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        margin: '0 auto 20px'
+      }}>
+        <span style={{ fontSize: 28 }}>📊</span>
+      </div>
+      <h2 style={{ fontWeight: 700, marginBottom: 8, fontSize: '1.3rem' }}>Sistema de Monitoreo Sectorial</h2>
+      <p style={{ color: styles.gray600, marginBottom: 24, fontSize: '0.9rem' }}>MMAYA - Ministerio de Medio Ambiente y Agua</p>
+      <p style={{ color: styles.gray500, fontSize: '0.85rem' }}>Bienvenido, {user?.nombre || user?.username}</p>
+    </div>
+  );
+}
+
+// Indicadores View
+function IndicadoresView() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/sms/matriz_parametros`)
+      .then(res => res.json())
+      .then(json => setData(json))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div>
+      <h2 style={{ fontWeight: 700, fontSize: '1.3rem', marginBottom: 16 }}>Banco de Indicadores</h2>
+      
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 30 }}>Cargando...</div>
+      ) : (
+        <div style={{
+          background: styles.white,
+          borderRadius: 8,
+          overflow: 'auto',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+        }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1100 }}>
+            <thead>
+              <tr>
+                {['ID', 'Código', 'Indicador', 'Meta', 'Resultado', 'Acción', 'Año Base', 'Línea Base', 'Logro', 'Estado'].map(h => (
+                  <th key={h} style={headerStyle}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.map(item => (
+                <tr key={item.id_indicador} style={{ borderBottom: `1px solid ${styles.gray200}` }}>
+                  <td style={{ ...rowStyle, textAlign: 'center' }}>{item.id_indicador}</td>
+                  <td style={rowStyle}>{item.codi}</td>
+                  <td style={{ ...rowStyle, maxWidth: 280 }}>{item.indicador_resultado}</td>
+                  <td style={rowStyle}>{item.codi_meta}</td>
+                  <td style={rowStyle}>{item.codi_resultado}</td>
+                  <td style={rowStyle}>{item.codi_accion}</td>
+                  <td style={{ ...rowStyle, textAlign: 'center' }}>{item.anio_base}</td>
+                  <td style={rowStyle}>{item.linea_base}</td>
+                  <td style={rowStyle}>{item.logro}</td>
+                  <td style={{ ...rowStyle, textAlign: 'center' }}>
+                    <span style={{
+                      padding: '3px 10px',
+                      borderRadius: 12,
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      background: item.estado === 'ACTIVO' ? '#D1FAE5' : '#FEE2E2',
+                      color: item.estado === 'ACTIVO' ? styles.green : styles.red
+                    }}>{item.estado}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
@@ -1049,152 +1559,36 @@ function App() {
       case 'home':
         return <HomeView user={user} />;
       case 'loadSectorView':
-        return (
-          <CrudTable
-            title="Sectores"
-            endpoint="sectores"
-            columns={[
-              { key: 'id', label: 'ID' },
-              { key: 'nombre', label: 'Sector' },
-              { key: 'estado', label: 'Estado' }
-            ]}
-            formFields={[
-              { key: 'nombre', label: 'Nombre del Sector', type: 'text' },
-              { key: 'estado', label: 'Estado', type: 'select', options: [{ value: 'ACTIVO', label: 'ACTIVO' }, { value: 'INACTIVO', label: 'INACTIVO' }] }
-            ]}
-          />
-        );
+        return <CrudTable title="Sectores" endpoint="sectores" columns={[{ key: 'id', label: 'ID' }, { key: 'nombre', label: 'Sector' }, { key: 'estado', label: 'Estado' }]} formFields={[{ key: 'nombre', label: 'Nombre del Sector', type: 'text' }, { key: 'estado', label: 'Estado', type: 'select', options: [{ value: 'ACTIVO', label: 'ACTIVO' }, { value: 'INACTIVO', label: 'INACTIVO' }] }]} />;
       case 'loadEntidadView':
-        return (
-          <CrudTable
-            title="Entidades"
-            endpoint="entidades"
-            columns={[
-              { key: 'id', label: 'ID' },
-              { key: 'nombre', label: 'Entidad' },
-              { key: 'estado', label: 'Estado' }
-            ]}
-            formFields={[
-              { key: 'nombre', label: 'Nombre de la Entidad', type: 'text' },
-              { key: 'estado', label: 'Estado', type: 'select', options: [{ value: 'ACTIVO', label: 'ACTIVO' }, { value: 'INACTIVO', label: 'INACTIVO' }] }
-            ]}
-          />
-        );
+        return <CrudTable title="Entidades" endpoint="entidades" columns={[{ key: 'id', label: 'ID' }, { key: 'nombre', label: 'Entidad' }, { key: 'estado', label: 'Estado' }]} formFields={[{ key: 'nombre', label: 'Nombre de la Entidad', type: 'text' }, { key: 'estado', label: 'Estado', type: 'select', options: [{ value: 'ACTIVO', label: 'ACTIVO' }, { value: 'INACTIVO', label: 'INACTIVO' }] }]} />;
       case 'loadPilarView':
-        return (
-          <CrudTable
-            title="Pilares"
-            endpoint="pilares"
-            columns={[
-              { key: 'id', label: 'ID' },
-              { key: 'nombre', label: 'Pilar' },
-              { key: 'estado', label: 'Estado' }
-            ]}
-            formFields={[
-              { key: 'nombre', label: 'Nombre del Pilar', type: 'text' },
-              { key: 'estado', label: 'Estado', type: 'select', options: [{ value: 'ACTIVO', label: 'ACTIVO' }, { value: 'INACTIVO', label: 'INACTIVO' }] }
-            ]}
-          />
-        );
+        return <CrudTable title="Pilares" endpoint="pilares" columns={[{ key: 'id', label: 'ID' }, { key: 'nombre', label: 'Pilar' }, { key: 'estado', label: 'Estado' }]} formFields={[{ key: 'nombre', label: 'Nombre del Pilar', type: 'text' }, { key: 'estado', label: 'Estado', type: 'select', options: [{ value: 'ACTIVO', label: 'ACTIVO' }, { value: 'INACTIVO', label: 'INACTIVO' }] }]} />;
       case 'loadEjeView':
-        return (
-          <CrudTable
-            title="Ejes"
-            endpoint="ejes"
-            columns={[
-              { key: 'id', label: 'ID' },
-              { key: 'nombre', label: 'Eje' },
-              { key: 'estado', label: 'Estado' }
-            ]}
-            formFields={[
-              { key: 'nombre', label: 'Nombre del Eje', type: 'text' },
-              { key: 'estado', label: 'Estado', type: 'select', options: [{ value: 'ACTIVO', label: 'ACTIVO' }, { value: 'INACTIVO', label: 'INACTIVO' }] }
-            ]}
-          />
-        );
+        return <CrudTable title="Ejes" endpoint="ejes" columns={[{ key: 'id', label: 'ID' }, { key: 'nombre', label: 'Eje' }, { key: 'estado', label: 'Estado' }]} formFields={[{ key: 'nombre', label: 'Nombre del Eje', type: 'text' }, { key: 'estado', label: 'Estado', type: 'select', options: [{ value: 'ACTIVO', label: 'ACTIVO' }, { value: 'INACTIVO', label: 'INACTIVO' }] }]} />;
       case 'loadMetaView':
-        return (
-          <CrudTable
-            title="Metas"
-            endpoint="metas"
-            columns={[
-              { key: 'id', label: 'ID' },
-              { key: 'codigo', label: 'Código' },
-              { key: 'nombre', label: 'Meta' },
-              { key: 'estado', label: 'Estado' }
-            ]}
-            formFields={[
-              { key: 'codigo', label: 'Código', type: 'text' },
-              { key: 'nombre', label: 'Descripción de la Meta', type: 'textarea' },
-              { key: 'estado', label: 'Estado', type: 'select', options: [{ value: 'ACTIVO', label: 'ACTIVO' }, { value: 'INACTIVO', label: 'INACTIVO' }] }
-            ]}
-          />
-        );
+        return <CrudTable title="Metas" endpoint="metas" columns={[{ key: 'id', label: 'ID' }, { key: 'codigo', label: 'Código' }, { key: 'nombre', label: 'Meta' }, { key: 'estado', label: 'Estado' }]} formFields={[{ key: 'codigo', label: 'Código', type: 'text' }, { key: 'nombre', label: 'Descripción', type: 'textarea' }, { key: 'estado', label: 'Estado', type: 'select', options: [{ value: 'ACTIVO', label: 'ACTIVO' }, { value: 'INACTIVO', label: 'INACTIVO' }] }]} />;
       case 'loadResultadoView':
-        return (
-          <CrudTable
-            title="Resultados"
-            endpoint="resultados"
-            columns={[
-              { key: 'id', label: 'ID' },
-              { key: 'codigo', label: 'Código' },
-              { key: 'nombre', label: 'Resultado' },
-              { key: 'estado', label: 'Estado' }
-            ]}
-            formFields={[
-              { key: 'codigo', label: 'Código', type: 'text' },
-              { key: 'nombre', label: 'Descripción del Resultado', type: 'textarea' },
-              { key: 'estado', label: 'Estado', type: 'select', options: [{ value: 'ACTIVO', label: 'ACTIVO' }, { value: 'INACTIVO', label: 'INACTIVO' }] }
-            ]}
-          />
-        );
+        return <CrudTable title="Resultados" endpoint="resultados" columns={[{ key: 'id', label: 'ID' }, { key: 'codigo', label: 'Código' }, { key: 'nombre', label: 'Resultado' }, { key: 'estado', label: 'Estado' }]} formFields={[{ key: 'codigo', label: 'Código', type: 'text' }, { key: 'nombre', label: 'Descripción', type: 'textarea' }, { key: 'estado', label: 'Estado', type: 'select', options: [{ value: 'ACTIVO', label: 'ACTIVO' }, { value: 'INACTIVO', label: 'INACTIVO' }] }]} />;
       case 'loadAccionView':
-        return (
-          <CrudTable
-            title="Acciones"
-            endpoint="acciones"
-            columns={[
-              { key: 'id', label: 'ID' },
-              { key: 'codigo', label: 'Código' },
-              { key: 'nombre', label: 'Acción' },
-              { key: 'estado', label: 'Estado' }
-            ]}
-            formFields={[
-              { key: 'codigo', label: 'Código', type: 'text' },
-              { key: 'nombre', label: 'Descripción de la Acción', type: 'textarea' },
-              { key: 'estado', label: 'Estado', type: 'select', options: [{ value: 'ACTIVO', label: 'ACTIVO' }, { value: 'INACTIVO', label: 'INACTIVO' }] }
-            ]}
-          />
-        );
+        return <CrudTable title="Acciones" endpoint="acciones" columns={[{ key: 'id', label: 'ID' }, { key: 'codigo', label: 'Código' }, { key: 'nombre', label: 'Acción' }, { key: 'estado', label: 'Estado' }]} formFields={[{ key: 'codigo', label: 'Código', type: 'text' }, { key: 'nombre', label: 'Descripción', type: 'textarea' }, { key: 'estado', label: 'Estado', type: 'select', options: [{ value: 'ACTIVO', label: 'ACTIVO' }, { value: 'INACTIVO', label: 'INACTIVO' }] }]} />;
       case 'loadIndicadorView':
         return <IndicadoresView />;
       case 'loadRendicionView':
       case 'loadSeguimientoView':
         return (
           <div>
-            <h2 style={{ fontWeight: 700, fontSize: '1.5rem', marginBottom: 24 }}>Rendición de Cuentas</h2>
-            <p style={{ color: styles.gray600 }}>Seleccione un indicador para ver o registrar la rendición.</p>
+            <h2 style={{ fontWeight: 700, fontSize: '1.3rem', marginBottom: 16 }}>Rendición de Cuentas</h2>
+            <p style={{ color: styles.gray600, fontSize: '0.9rem' }}>Seleccione un indicador para ver o registrar la rendición.</p>
           </div>
         );
       case 'loadUsuariosView':
         return <UsuariosView />;
       case 'loadRolesView':
-        return (
-          <CrudTable
-            title="Roles"
-            endpoint="roles"
-            idField="id_rol"
-            columns={[
-              { key: 'id_rol', label: 'ID' },
-              { key: 'rol', label: 'Rol' },
-              { key: 'estado', label: 'Estado' }
-            ]}
-            formFields={[
-              { key: 'rol', label: 'Nombre del Rol', type: 'text' },
-              { key: 'estado', label: 'Estado', type: 'select', options: [{ value: 'ACTIVO', label: 'ACTIVO' }, { value: 'INACTIVO', label: 'INACTIVO' }] }
-            ]}
-          />
-        );
+      case 'loadRolView':
+        return <RolesView />;
+      case 'loadMenuView':
+        return <MenuAdminView />;
       default:
         return <HomeView user={user} />;
     }
@@ -1208,7 +1602,6 @@ function App() {
         activeView={activeView}
         setActiveView={setActiveView}
         collapsed={sidebarCollapsed}
-        setCollapsed={setSidebarCollapsed}
       />
       
       {/* Main Content */}
@@ -1220,7 +1613,7 @@ function App() {
         {/* Navbar */}
         <nav style={{
           background: styles.white,
-          padding: '16px 24px',
+          padding: '12px 20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -1234,35 +1627,35 @@ function App() {
             style={{
               background: 'none',
               border: 'none',
-              fontSize: '1.2rem',
+              fontSize: '1.1rem',
               cursor: 'pointer',
-              padding: 8
+              padding: 6
             }}
           >☰</button>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{user?.nombre || user?.username}</div>
-              <div style={{ fontSize: '0.75rem', color: styles.gray500 }}>{user?.rol || 'Usuario'}</div>
+              <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{user?.nombre || user?.username}</div>
+              <div style={{ fontSize: '0.7rem', color: styles.gray500 }}>{user?.rol || 'Usuario'}</div>
             </div>
             <button
               onClick={handleLogout}
               style={{
-                padding: '8px 16px',
+                padding: '6px 14px',
                 background: styles.red,
                 color: styles.white,
                 border: 'none',
-                borderRadius: 6,
+                borderRadius: 5,
                 cursor: 'pointer',
                 fontWeight: 500,
-                fontSize: '0.85rem'
+                fontSize: '0.8rem'
               }}
             >Salir</button>
           </div>
         </nav>
 
         {/* Content Area */}
-        <div style={{ padding: 32 }}>
+        <div style={{ padding: 24 }}>
           {renderView()}
         </div>
       </div>
