@@ -221,9 +221,18 @@ function SeguimientoView({ user }) {
   const [rendicion, setRendicion] = useState({});
   const [loading, setLoading] = useState(true);
   const [contexto, setContexto] = useState({});
+  const [archivos, setArchivos] = useState([]);
+  const [showFileModal, setShowFileModal] = useState(false);
+  const [fileDescription, setFileDescription] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
   const mesesCortos = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+  const años = [2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030];
+
+  // Get current month index based on selected mes
+  const getMesIndex = () => meses.indexOf(mes);
 
   useEffect(() => {
     const loadData = async () => {
@@ -232,7 +241,6 @@ function SeguimientoView({ user }) {
           const ctxRes = await fetch(`${API_URL}/api/sms/contexto_usuario/${user.id_area}`);
           if (ctxRes.ok) setContexto(await ctxRes.json());
         }
-        // Admin sees all, others see only their area's indicators
         const isAdmin = user?.id_rol === 1;
         const endpoint = isAdmin ? `${API_URL}/api/sms/matriz_parametros` : `${API_URL}/api/sms/indicadores/area/${user?.id_area}`;
         const indRes = await fetch(endpoint);
@@ -245,10 +253,14 @@ function SeguimientoView({ user }) {
     loadData();
   }, [user]);
 
+  // Load rendicion data when indicator or year changes
   useEffect(() => {
     if (selectedIndicador) {
       fetch(`${API_URL}/api/sms/rendicion/${selectedIndicador.id_indicador}/${gestion}`)
         .then(r => r.json()).then(data => setRendicion(data || {})).catch(console.error);
+      // Load attached files
+      fetch(`${API_URL}/api/sms/archivos/${selectedIndicador.id_indicador}/${gestion}`)
+        .then(r => r.json()).then(data => setArchivos(data || [])).catch(console.error);
     }
   }, [selectedIndicador, gestion]);
 
@@ -265,26 +277,69 @@ function SeguimientoView({ user }) {
     } catch (e) { console.error(e); alert('Error al guardar'); }
   };
 
+  // File upload handler
+  const handleFileUpload = async () => {
+    if (!selectedFile || !selectedIndicador) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('archivo', selectedFile);
+      formData.append('id_indicador', selectedIndicador.id_indicador);
+      formData.append('gestion', gestion);
+      formData.append('descripcion', fileDescription);
+      
+      const res = await fetch(`${API_URL}/api/sms/archivos`, { method: 'POST', body: formData });
+      if (res.ok) {
+        const newFile = await res.json();
+        setArchivos(prev => [...prev, { ...newFile, nombre_original: selectedFile.name, tamaño: selectedFile.size }]);
+        setShowFileModal(false);
+        setSelectedFile(null);
+        setFileDescription('');
+      } else {
+        alert('Error al subir archivo');
+      }
+    } catch (e) { console.error(e); alert('Error al subir archivo'); }
+    finally { setUploading(false); }
+  };
+
+  // File delete handler
+  const handleDeleteFile = async (fileId) => {
+    if (!window.confirm('¿Está seguro de eliminar este archivo?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/sms/archivos/${fileId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setArchivos(prev => prev.filter(f => f.id !== fileId));
+      }
+    } catch (e) { console.error(e); alert('Error al eliminar archivo'); }
+  };
+
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '-';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  };
+
   if (loading) return <div style={{ textAlign: 'center', padding: 40 }}>Cargando...</div>;
 
   const cellInput = { width: '100%', padding: '4px 6px', fontSize: '0.75rem', border: `1px solid ${styles.gray300}`, borderRadius: 4, textAlign: 'center', boxSizing: 'border-box' };
+  const disabledInput = { ...cellInput, background: styles.gray200, color: styles.gray500, cursor: 'not-allowed' };
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ fontWeight: 700, fontSize: '1.2rem' }}>Seguimiento de Indicadores</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => {}} style={{ padding: '8px 16px', background: styles.white, color: styles.black, border: `2px solid ${styles.black}`, borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.8rem' }}>
-            Finalizar actualización
-          </button>
-        </div>
       </div>
 
-      {/* Context Header - UBER Style */}
+      {/* Context Header - UBER Style with dark header */}
       <div style={{ background: styles.white, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 16 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${styles.gray200}` }}>
+        <div style={{ background: styles.black, padding: '10px 16px' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: styles.white, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Contexto del Usuario</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)' }}>
           {[{ label: 'ENTIDAD', value: contexto.entidad || '-' }, { label: 'ÁREA', value: contexto.area || '-' }, { label: 'SECTOR', value: contexto.sector || '-' },
-            { label: 'AÑO', value: <select value={gestion} onChange={(e) => setGestion(parseInt(e.target.value))} style={{ ...cellInput, background: styles.white }}>{[2023,2024,2025,2026].map(y => <option key={y} value={y}>{y}</option>)}</select> },
+            { label: 'AÑO', value: <select value={gestion} onChange={(e) => setGestion(parseInt(e.target.value))} style={{ ...cellInput, background: styles.white }}>{años.map(y => <option key={y} value={y}>{y}</option>)}</select> },
             { label: 'MES', value: <select value={mes} onChange={(e) => setMes(e.target.value)} style={{ ...cellInput, background: styles.white }}>{meses.map(m => <option key={m} value={m}>{m}</option>)}</select> },
             { label: 'ESTADO', value: <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 600, background: '#D1FAE5', color: styles.green }}>ABIERTO</span> }
           ].map((item, i) => (
@@ -296,62 +351,82 @@ function SeguimientoView({ user }) {
         </div>
       </div>
 
-      {/* Indicator Selector - UBER Style */}
-      <div style={{ background: styles.white, borderRadius: 8, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 16 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'end' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: styles.gray500, textTransform: 'uppercase', marginBottom: 8 }}>Seleccionar Indicador</label>
-            <select value={selectedIndicador?.id_indicador || ''} onChange={(e) => setSelectedIndicador(indicadores.find(i => i.id_indicador === parseInt(e.target.value)))}
-              style={{ width: '100%', padding: 12, fontSize: '0.85rem', border: `2px solid ${styles.gray300}`, borderRadius: 8, background: styles.white }}>
-              {indicadores.map(ind => <option key={ind.id_indicador} value={ind.id_indicador}>{ind.codi} - {ind.indicador_resultado?.substring(0, 80)}...</option>)}
-            </select>
-          </div>
-          <button onClick={saveRendicion} style={{ padding: '12px 24px', background: styles.black, color: styles.white, border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>
-            💾 Guardar
-          </button>
+      {/* Indicator Selector - UBER Style with dark header */}
+      <div style={{ background: styles.white, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 16 }}>
+        <div style={{ background: styles.black, padding: '10px 16px' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: styles.white, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Selección de Indicador</span>
         </div>
-        
-        {selectedIndicador && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${styles.gray200}` }}>
-            <div><div style={{ fontSize: '0.65rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>AÑO BASE</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.anio_base || '-'}</div></div>
-            <div><div style={{ fontSize: '0.65rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>LÍNEA BASE</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.linea_base || '-'}</div></div>
-            <div><div style={{ fontSize: '0.65rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>AÑO LOGRO</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.anio_logro || '-'}</div></div>
-            <div><div style={{ fontSize: '0.65rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>LOGRO PROGRAMADO</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.logro || '-'}</div></div>
+        <div style={{ padding: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'end' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: styles.gray500, textTransform: 'uppercase', marginBottom: 8 }}>Indicador</label>
+              <select value={selectedIndicador?.id_indicador || ''} onChange={(e) => setSelectedIndicador(indicadores.find(i => i.id_indicador === parseInt(e.target.value)))}
+                style={{ width: '100%', padding: 12, fontSize: '0.85rem', border: `2px solid ${styles.gray300}`, borderRadius: 8, background: styles.white }}>
+                {indicadores.map(ind => <option key={ind.id_indicador} value={ind.id_indicador}>{ind.codi} - {ind.indicador_resultado?.substring(0, 80)}...</option>)}
+              </select>
+            </div>
+            <button onClick={saveRendicion} style={{ padding: '12px 24px', background: styles.black, color: styles.white, border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>
+              💾 Guardar
+            </button>
           </div>
-        )}
+          
+          {selectedIndicador && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${styles.gray200}` }}>
+              <div><div style={{ fontSize: '0.65rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>AÑO BASE</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.anio_base || '-'}</div></div>
+              <div><div style={{ fontSize: '0.65rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>LÍNEA BASE</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.linea_base || '-'}</div></div>
+              <div><div style={{ fontSize: '0.65rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>AÑO LOGRO</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.anio_logro || '-'}</div></div>
+              <div><div style={{ fontSize: '0.65rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>LOGRO PROGRAMADO</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.logro || '-'}</div></div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Monthly Grid - UBER Style */}
-      <div style={{ background: styles.white, borderRadius: 8, overflow: 'auto', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 16 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
-          <thead>
-            <tr>
-              <th style={{ ...headerStyle, width: 100 }}>#</th>
-              {mesesCortos.map(m => <th key={m} style={{ ...headerStyle, textAlign: 'center', minWidth: 60 }}>{m}</th>)}
-              <th style={{ ...headerStyle, textAlign: 'center', background: styles.red }}>LOGRADO</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[{ key: 'ejecutado', label: 'EJECUCIÓN' }, { key: 'proc_ejecutado', label: '% EJEC' }, { key: 'acumulado', label: 'ACUMULADO' }].map(row => (
-              <tr key={row.key} style={{ borderBottom: `1px solid ${styles.gray200}` }}>
-                <td style={{ ...rowStyle, fontWeight: 600, background: styles.gray100 }}>{row.label}</td>
-                {mesesCortos.map(m => (
-                  <td key={m} style={{ ...rowStyle, padding: 4 }}>
-                    <input type="number" step={row.key === 'proc_ejecutado' ? '0.001' : '1'} value={rendicion[`${row.key}_${m.toLowerCase()}`] || ''} onChange={(e) => handleChange(`${row.key}_${m.toLowerCase()}`, e.target.value)} style={cellInput} />
-                  </td>
-                ))}
-                <td style={{ ...rowStyle, textAlign: 'center', background: '#FEE2E2', fontWeight: 600 }}>{row.key === 'ejecutado' ? (rendicion.logrado_periodo || '-') : ''}</td>
+      {/* Monthly Grid - UBER Style with dark header */}
+      <div style={{ background: styles.white, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 16 }}>
+        <div style={{ background: styles.black, padding: '10px 16px' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: styles.white, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Registro Mensual de Ejecución</span>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+            <thead>
+              <tr>
+                <th style={{ ...headerStyle, width: 100 }}>#</th>
+                {mesesCortos.map((m, idx) => <th key={m} style={{ ...headerStyle, textAlign: 'center', minWidth: 60, background: idx === getMesIndex() ? styles.green : styles.black }}>{m}</th>)}
+                <th style={{ ...headerStyle, textAlign: 'center', background: styles.red }}>LOGRADO</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {[{ key: 'ejecutado', label: 'EJECUCIÓN' }, { key: 'proc_ejecutado', label: '% EJEC' }, { key: 'acumulado', label: 'ACUMULADO' }].map(row => (
+                <tr key={row.key} style={{ borderBottom: `1px solid ${styles.gray200}` }}>
+                  <td style={{ ...rowStyle, fontWeight: 600, background: styles.gray100 }}>{row.label}</td>
+                  {mesesCortos.map((m, idx) => {
+                    const isEditable = idx === getMesIndex();
+                    return (
+                      <td key={m} style={{ ...rowStyle, padding: 4, background: isEditable ? '#E8F5E9' : 'transparent' }}>
+                        <input 
+                          type="number" 
+                          step={row.key === 'proc_ejecutado' ? '0.001' : '1'} 
+                          value={rendicion[`${row.key}_${m.toLowerCase()}`] || ''} 
+                          onChange={(e) => handleChange(`${row.key}_${m.toLowerCase()}`, e.target.value)} 
+                          style={isEditable ? cellInput : disabledInput}
+                          disabled={!isEditable}
+                        />
+                      </td>
+                    );
+                  })}
+                  <td style={{ ...rowStyle, textAlign: 'center', background: '#FEE2E2', fontWeight: 600 }}>{row.key === 'ejecutado' ? (rendicion.logrado_periodo || '-') : ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Qualitative Description - UBER Style */}
+      {/* Qualitative Description - UBER Style with dark headers */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
         <div style={{ background: styles.white, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-          <div style={{ padding: '12px 16px', borderBottom: `1px solid ${styles.gray200}` }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: styles.gray700 }}>Descripción Cualitativa del Avance</span>
+          <div style={{ background: styles.black, padding: '10px 16px' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: styles.white, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Descripción Cualitativa del Avance</span>
           </div>
           <div style={{ padding: 16 }}>
             <textarea value={rendicion.descripcion_cualitativa || ''} onChange={(e) => handleChange('descripcion_cualitativa', e.target.value)} rows={5}
@@ -360,8 +435,8 @@ function SeguimientoView({ user }) {
           </div>
         </div>
         <div style={{ background: styles.white, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-          <div style={{ padding: '12px 16px', borderBottom: `1px solid ${styles.gray200}` }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: styles.gray700 }}>Modificaciones</span>
+          <div style={{ background: styles.black, padding: '10px 16px' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: styles.white, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Modificaciones</span>
           </div>
           <div style={{ padding: 16 }}>
             <textarea value={rendicion.modificaciones || ''} onChange={(e) => handleChange('modificaciones', e.target.value)} rows={5}
@@ -371,19 +446,61 @@ function SeguimientoView({ user }) {
         </div>
       </div>
 
-      {/* Attachments - UBER Style */}
+      {/* Attachments - UBER Style with dark header */}
       <div style={{ background: styles.white, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${styles.gray200}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: styles.gray700 }}>Archivos Adjuntos</span>
-          <button style={{ padding: '6px 12px', background: styles.black, color: styles.white, border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem' }}>+ Agregar archivo</button>
+        <div style={{ background: styles.black, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: styles.white, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Archivos Adjuntos</span>
+          <button onClick={() => setShowFileModal(true)} style={{ padding: '6px 12px', background: styles.white, color: styles.black, border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem' }}>+ Agregar archivo</button>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr>{['NOMBRE', 'DESCRIPCIÓN', 'TAMAÑO', 'ACCIÓN'].map(h => <th key={h} style={headerStyle}>{h}</th>)}</tr></thead>
+          <thead><tr>{['NOMBRE', 'DESCRIPCIÓN', 'TAMAÑO', 'ACCIONES'].map(h => <th key={h} style={headerStyle}>{h}</th>)}</tr></thead>
           <tbody>
-            <tr><td colSpan={4} style={{ ...rowStyle, textAlign: 'center', color: styles.gray500, padding: 24 }}>No hay archivos adjuntos</td></tr>
+            {archivos.length === 0 ? (
+              <tr><td colSpan={4} style={{ ...rowStyle, textAlign: 'center', color: styles.gray500, padding: 24 }}>No hay archivos adjuntos</td></tr>
+            ) : archivos.map(archivo => (
+              <tr key={archivo.id} style={{ borderBottom: `1px solid ${styles.gray200}` }}>
+                <td style={rowStyle}>{archivo.nombre_original}</td>
+                <td style={rowStyle}>{archivo.descripcion || '-'}</td>
+                <td style={{ ...rowStyle, textAlign: 'center' }}>{formatFileSize(archivo.tamaño)}</td>
+                <td style={{ ...rowStyle, textAlign: 'center' }}>
+                  <a href={`${API_URL}/api/sms/archivos/download/${archivo.id}`} download style={{ padding: '3px 8px', background: styles.blue, color: styles.white, borderRadius: 4, textDecoration: 'none', fontSize: '0.7rem', marginRight: 4 }}>⬇️</a>
+                  <button onClick={() => handleDeleteFile(archivo.id)} style={{ padding: '3px 8px', background: styles.red, color: styles.white, border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: '0.7rem' }}>🗑️</button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
+
+      {/* File Upload Modal */}
+      {showFileModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div style={{ background: styles.white, borderRadius: 10, overflow: 'hidden', maxWidth: 480, width: '90%' }}>
+            <div style={{ background: styles.black, padding: '14px 18px' }}>
+              <h3 style={{ color: styles.white, fontWeight: 700, fontSize: '1rem', margin: 0 }}>Agregar Archivo Adjunto</h3>
+            </div>
+            <div style={{ padding: 18 }}>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem', color: styles.gray700 }}>Seleccionar Archivo *</label>
+                <input type="file" onChange={(e) => setSelectedFile(e.target.files[0])} style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                {selectedFile && <div style={{ marginTop: 6, fontSize: '0.75rem', color: styles.gray500 }}>Tamaño: {formatFileSize(selectedFile.size)}</div>}
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem', color: styles.gray700 }}>Descripción del Archivo</label>
+                <textarea value={fileDescription} onChange={(e) => setFileDescription(e.target.value)} rows={3}
+                  style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem', resize: 'vertical', boxSizing: 'border-box' }}
+                  placeholder="Describa el contenido o propósito del archivo..." />
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => { setShowFileModal(false); setSelectedFile(null); setFileDescription(''); }} style={{ flex: 1, padding: 10, border: `2px solid ${styles.black}`, background: 'transparent', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>Cancelar</button>
+                <button onClick={handleFileUpload} disabled={!selectedFile || uploading} style={{ flex: 1, padding: 10, background: styles.black, color: styles.white, border: 'none', borderRadius: 6, fontWeight: 600, cursor: selectedFile && !uploading ? 'pointer' : 'not-allowed', fontSize: '0.85rem', opacity: selectedFile && !uploading ? 1 : 0.6 }}>
+                  {uploading ? 'Subiendo...' : '📤 Subir Archivo'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
