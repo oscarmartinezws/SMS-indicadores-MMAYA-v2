@@ -314,6 +314,33 @@ async def create_area(id_entidad: int = Form(...), nombre: str = Form(...), esta
         )
         return dict(row)
 
+@sms_router.post("/areas/json")
+async def create_area_json(data: dict):
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "INSERT INTO area (id_entidad, area_organizacional, estado) VALUES ($1, $2, $3) RETURNING id_area as id, id_entidad, area_organizacional as nombre, estado",
+            data.get('id_entidad'), data.get('nombre'), data.get('estado', 'ACTIVO')
+        )
+        return dict(row)
+
+@sms_router.put("/areas/{id}")
+async def update_area(id: int, data: dict):
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "UPDATE area SET area_organizacional = $1, estado = $2 WHERE id_area = $3 RETURNING id_area as id, id_entidad, area_organizacional as nombre, estado",
+            data.get('nombre'), data.get('estado'), id
+        )
+        return dict(row) if row else {"error": "Not found"}
+
+@sms_router.delete("/areas/{id}")
+async def delete_area(id: int):
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM area WHERE id_area = $1", id)
+        return {"message": "Área eliminada"}
+
 # ========== Pilares ==========
 @sms_router.get("/pilares")
 async def get_pilares():
