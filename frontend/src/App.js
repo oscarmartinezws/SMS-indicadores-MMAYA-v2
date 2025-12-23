@@ -159,6 +159,286 @@ function CrudTable({ title, endpoint, columns, formFields, idField = 'id' }) {
   );
 }
 
+// Entidades con Areas View
+function EntidadesAreasView() {
+  const [entidades, setEntidades] = useState([]);
+  const [selectedEntidad, setSelectedEntidad] = useState(null);
+  const [areas, setAreas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showEntidadModal, setShowEntidadModal] = useState(false);
+  const [showAreaModal, setShowAreaModal] = useState(false);
+  const [editEntidad, setEditEntidad] = useState(null);
+  const [editArea, setEditArea] = useState(null);
+  const [entidadForm, setEntidadForm] = useState({ nombre: '', estado: 'ACTIVO' });
+  const [areaForm, setAreaForm] = useState({ nombre: '', estado: 'ACTIVO' });
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState('');
+
+  // Load entidades
+  useEffect(() => {
+    fetch(`${API_URL}/api/sms/entidades`)
+      .then(r => r.json())
+      .then(data => setEntidades(data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Load areas when entidad is selected
+  const loadAreas = async (entidadId) => {
+    setSelectedEntidad(entidadId);
+    const res = await fetch(`${API_URL}/api/sms/entidades/${entidadId}/areas`);
+    setAreas(await res.json());
+  };
+
+  // Entidad CRUD
+  const openEntidadModal = (entidad = null) => {
+    if (entidad) {
+      setEditEntidad(entidad);
+      setEntidadForm({ nombre: entidad.nombre, estado: entidad.estado });
+    } else {
+      setEditEntidad(null);
+      setEntidadForm({ nombre: '', estado: 'ACTIVO' });
+    }
+    setShowEntidadModal(true);
+  };
+
+  const saveEntidad = async () => {
+    if (!entidadForm.nombre.trim()) {
+      setConfirmMessage('El nombre de la entidad es obligatorio');
+      setShowConfirmModal(true);
+      return;
+    }
+    const method = editEntidad ? 'PUT' : 'POST';
+    const url = editEntidad 
+      ? `${API_URL}/api/sms/entidades/${editEntidad.id}` 
+      : `${API_URL}/api/sms/entidades`;
+    
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entidadForm)
+    });
+    
+    if (res.ok) {
+      setShowEntidadModal(false);
+      const data = await fetch(`${API_URL}/api/sms/entidades`).then(r => r.json());
+      setEntidades(data);
+      setConfirmMessage(editEntidad ? 'Entidad actualizada exitosamente' : 'Entidad creada exitosamente');
+      setShowConfirmModal(true);
+    }
+  };
+
+  // Area CRUD
+  const openAreaModal = (area = null) => {
+    if (area) {
+      setEditArea(area);
+      setAreaForm({ nombre: area.nombre, estado: area.estado });
+    } else {
+      setEditArea(null);
+      setAreaForm({ nombre: '', estado: 'ACTIVO' });
+    }
+    setShowAreaModal(true);
+  };
+
+  const saveArea = async () => {
+    if (!areaForm.nombre.trim()) {
+      setConfirmMessage('El nombre del área es obligatorio');
+      setShowConfirmModal(true);
+      return;
+    }
+    
+    if (editArea) {
+      // Update
+      const res = await fetch(`${API_URL}/api/sms/areas/${editArea.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(areaForm)
+      });
+      if (res.ok) {
+        setShowAreaModal(false);
+        loadAreas(selectedEntidad);
+        setConfirmMessage('Área actualizada exitosamente');
+        setShowConfirmModal(true);
+      }
+    } else {
+      // Create
+      const res = await fetch(`${API_URL}/api/sms/areas/json`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...areaForm, id_entidad: selectedEntidad })
+      });
+      if (res.ok) {
+        setShowAreaModal(false);
+        loadAreas(selectedEntidad);
+        setConfirmMessage('Área creada exitosamente');
+        setShowConfirmModal(true);
+      }
+    }
+  };
+
+  const deleteArea = async (areaId) => {
+    if (!window.confirm('¿Está seguro de eliminar esta área?')) return;
+    const res = await fetch(`${API_URL}/api/sms/areas/${areaId}`, { method: 'DELETE' });
+    if (res.ok) {
+      loadAreas(selectedEntidad);
+      setConfirmMessage('Área eliminada exitosamente');
+      setShowConfirmModal(true);
+    }
+  };
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 24 }}>Cargando...</div>;
+
+  const selectedEntidadName = entidades.find(e => e.id === selectedEntidad)?.nombre || '';
+
+  return (
+    <div>
+      {/* Entidades Section */}
+      <div style={{ background: styles.white, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 20 }}>
+        <div style={{ background: styles.black, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: styles.white, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Entidad</span>
+          <button onClick={() => openEntidadModal()} style={{ padding: '6px 14px', background: styles.white, color: styles.black, border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem' }}>Adicionar</button>
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th style={headerStyle}>#</th>
+              <th style={headerStyle}>Nombre de la Entidad</th>
+              <th style={headerStyle}>Estado</th>
+              <th style={{ ...headerStyle, textAlign: 'center' }}>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entidades.map((ent, idx) => (
+              <tr key={ent.id} style={{ borderBottom: `1px solid ${styles.gray200}`, background: selectedEntidad === ent.id ? '#E3F2FD' : 'transparent' }}>
+                <td style={{ ...rowStyle, textAlign: 'center' }}>{idx + 1}</td>
+                <td style={rowStyle}>{ent.nombre}</td>
+                <td style={{ ...rowStyle, textAlign: 'center' }}>
+                  <span style={{ padding: '2px 8px', borderRadius: 10, fontSize: '0.65rem', fontWeight: 600, background: ent.estado === 'ACTIVO' ? '#D1FAE5' : '#FEE2E2', color: ent.estado === 'ACTIVO' ? styles.green : styles.red }}>{ent.estado}</span>
+                </td>
+                <td style={{ ...rowStyle, textAlign: 'center' }}>
+                  <button onClick={() => openEntidadModal(ent)} style={{ padding: '4px 8px', background: styles.gray100, border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: '0.7rem', marginRight: 4 }} title="Editar">✏️</button>
+                  <button onClick={() => loadAreas(ent.id)} style={{ padding: '4px 8px', background: styles.blue, color: styles.white, border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: '0.7rem' }} title="Ver Áreas">🏢</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Areas Section - Only show when an entidad is selected */}
+      {selectedEntidad && (
+        <div style={{ background: styles.white, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <div style={{ background: styles.black, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: styles.white, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Área Organizacional - {selectedEntidadName}</span>
+            <button onClick={() => openAreaModal()} style={{ padding: '6px 14px', background: styles.white, color: styles.black, border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem' }}>Adicionar</button>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={headerStyle}>#</th>
+                <th style={headerStyle}>Nombre del Área Organizacional</th>
+                <th style={headerStyle}>Estado</th>
+                <th style={{ ...headerStyle, textAlign: 'center' }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {areas.length === 0 ? (
+                <tr><td colSpan={4} style={{ ...rowStyle, textAlign: 'center', color: styles.gray500, padding: 24 }}>No hay áreas registradas para esta entidad</td></tr>
+              ) : areas.map((area, idx) => (
+                <tr key={area.id} style={{ borderBottom: `1px solid ${styles.gray200}` }}>
+                  <td style={{ ...rowStyle, textAlign: 'center' }}>{idx + 1}</td>
+                  <td style={rowStyle}>{area.nombre}</td>
+                  <td style={{ ...rowStyle, textAlign: 'center' }}>
+                    <span style={{ padding: '2px 8px', borderRadius: 10, fontSize: '0.65rem', fontWeight: 600, background: area.estado === 'ACTIVO' ? '#D1FAE5' : '#FEE2E2', color: area.estado === 'ACTIVO' ? styles.green : styles.red }}>{area.estado}</span>
+                  </td>
+                  <td style={{ ...rowStyle, textAlign: 'center' }}>
+                    <button onClick={() => openAreaModal(area)} style={{ padding: '4px 8px', background: styles.gray100, border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: '0.7rem', marginRight: 4 }} title="Editar">✏️</button>
+                    <button onClick={() => deleteArea(area.id)} style={{ padding: '4px 8px', background: styles.red, color: styles.white, border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: '0.7rem' }} title="Eliminar">🗑️</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Entidad Modal */}
+      {showEntidadModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div style={{ background: styles.white, borderRadius: 10, overflow: 'hidden', maxWidth: 420, width: '90%' }}>
+            <div style={{ background: styles.black, padding: '14px 18px' }}>
+              <h3 style={{ color: styles.white, fontWeight: 700, fontSize: '1rem', margin: 0 }}>{editEntidad ? 'Editar Entidad' : 'Nueva Entidad'}</h3>
+            </div>
+            <div style={{ padding: 18 }}>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem', color: styles.gray700 }}>Entidad *</label>
+                <input type="text" value={entidadForm.nombre} onChange={(e) => setEntidadForm({ ...entidadForm, nombre: e.target.value })} style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Nombre de la entidad" />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem', color: styles.gray700 }}>Estado</label>
+                <select value={entidadForm.estado} onChange={(e) => setEntidadForm({ ...entidadForm, estado: e.target.value })} style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem' }}>
+                  <option value="ACTIVO">ACTIVO</option>
+                  <option value="INACTIVO">INACTIVO</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={saveEntidad} style={{ flex: 1, padding: 10, background: styles.black, color: styles.white, border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>Grabar</button>
+                <button onClick={() => setShowEntidadModal(false)} style={{ flex: 1, padding: 10, background: styles.blue, color: styles.white, border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>Volver</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Area Modal */}
+      {showAreaModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div style={{ background: styles.white, borderRadius: 10, overflow: 'hidden', maxWidth: 420, width: '90%' }}>
+            <div style={{ background: styles.black, padding: '14px 18px' }}>
+              <h3 style={{ color: styles.white, fontWeight: 700, fontSize: '1rem', margin: 0 }}>Área Organizacional</h3>
+            </div>
+            <div style={{ padding: 18 }}>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem', color: styles.gray700 }}>Área *</label>
+                <input type="text" value={areaForm.nombre} onChange={(e) => setAreaForm({ ...areaForm, nombre: e.target.value })} style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Nombre del área" />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.8rem', color: styles.gray700 }}>Estado</label>
+                <select value={areaForm.estado} onChange={(e) => setAreaForm({ ...areaForm, estado: e.target.value })} style={{ width: '100%', padding: 10, border: `2px solid ${styles.gray300}`, borderRadius: 6, fontSize: '0.85rem' }}>
+                  <option value="ACTIVO">ACTIVO</option>
+                  <option value="INACTIVO">INACTIVO</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={saveArea} style={{ flex: 1, padding: 10, background: styles.black, color: styles.white, border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>Grabar</button>
+                <button onClick={() => setShowAreaModal(false)} style={{ flex: 1, padding: 10, background: styles.blue, color: styles.white, border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>Volver</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2001 }}>
+          <div style={{ background: styles.white, borderRadius: 12, overflow: 'hidden', maxWidth: 380, width: '90%', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
+            <div style={{ background: confirmMessage.includes('obligatorio') ? styles.red : styles.green, padding: '18px 24px', textAlign: 'center' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: 6 }}>{confirmMessage.includes('obligatorio') ? '⚠️' : '✅'}</div>
+              <h3 style={{ color: styles.white, fontWeight: 700, fontSize: '1rem', margin: 0 }}>
+                {confirmMessage.includes('obligatorio') ? 'Atención' : '¡Operación Exitosa!'}
+              </h3>
+            </div>
+            <div style={{ padding: 20, textAlign: 'center' }}>
+              <p style={{ fontSize: '0.9rem', color: styles.gray700, marginBottom: 16 }}>{confirmMessage}</p>
+              <button onClick={() => setShowConfirmModal(false)} style={{ padding: '10px 28px', background: styles.black, color: styles.white, border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>Aceptar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Banco de Indicadores View - Filtered by user area
 function IndicadoresView({ user }) {
   const [data, setData] = useState([]);
