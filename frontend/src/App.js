@@ -226,6 +226,9 @@ function SeguimientoView({ user }) {
   const [fileDescription, setFileDescription] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
   const mesesCortos = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
@@ -268,13 +271,40 @@ function SeguimientoView({ user }) {
 
   const saveRendicion = async () => {
     if (!selectedIndicador) return;
+    setSaving(true);
     try {
+      // Include id_area from user and from indicator
+      const dataToSave = {
+        id_indicador: selectedIndicador.id_indicador,
+        gestion,
+        id_area: selectedIndicador.id_area || user?.id_area,
+        ...rendicion
+      };
+      
       const res = await fetch(`${API_URL}/api/sms/rendicion`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_indicador: selectedIndicador.id_indicador, gestion, ...rendicion })
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToSave)
       });
-      if (res.ok) alert('Rendición guardada exitosamente');
-    } catch (e) { console.error(e); alert('Error al guardar'); }
+      
+      if (res.ok) {
+        const result = await res.json();
+        const isUpdate = rendicion.id_rendicion ? true : false;
+        setRendicion(result);
+        setConfirmMessage(isUpdate ? 'Registro actualizado exitosamente' : 'Registro guardado exitosamente');
+        setShowConfirmModal(true);
+      } else {
+        const error = await res.json();
+        setConfirmMessage(`Error: ${error.detail || 'No se pudo guardar el registro'}`);
+        setShowConfirmModal(true);
+      }
+    } catch (e) { 
+      console.error(e); 
+      setConfirmMessage('Error de conexión al guardar');
+      setShowConfirmModal(true);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // File upload handler
