@@ -751,6 +751,87 @@ async def save_rendicion(data: dict):
             row = await conn.fetchrow(query, *values)
             return dict(row)
 
+# ========== Archivos Adjuntos (usando MongoDB) ==========
+UPLOAD_DIR = Path("/app/backend/uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+@sms_router.get("/archivos/{id_indicador}/{gestion}")
+async def get_archivos(id_indicador: int, gestion: int):
+    archivos = await db.archivos_rendicion.find(
+        {"id_indicador": id_indicador, "gestion": gestion},
+        {"_id": 0}
+    ).to_list(100)
+    return archivos
+
+@sms_router.post("/archivos")
+async def upload_archivo(
+    id_indicador: int = Form(...),
+    gestion: int = Form(...),
+    descripcion: str = Form(""),
+    archivo: UploadFile = File(...)
+):
+    # Generate unique filename
+    file_id = str(uuid.uuid4())
+    file_extension = Path(archivo.filename).suffix
+    stored_filename = f"{file_id}{file_extension}"
+    file_path = UPLOAD_DIR / stored_filename
+    
+    # Save file
+    content = await archivo.read()
+    file_size = len(content)
+    with open(file_path, "wb") as f:
+        f.write(content)
+    
+    # Save metadata to MongoDB
+    archivo_doc = {
+        "id": file_id,
+        "id_indicador": id_indicador,
+        "gestion": gestion,
+        "nombre_original": archivo.filename,
+        "nombre_almacenado": stored_filename,
+        "descripcion": descripcion,
+        "tamaño": file_size,
+        "fecha_carga": datetime.now(timezone.utc).isoformat()
+    }
+    await db.archivos_rendicion.insert_one(archivo_doc)
+    
+    return {"id": file_id, "nombre_original": archivo.filename, "tamaño": file_size, "descripcion": descripcion}
+
+@sms_router.delete("/archivos/{file_id}")
+async def delete_archivo(file_id: str):
+    # Find file in MongoDB
+    archivo = await db.archivos_rendicion.find_one({"id": file_id})
+    if not archivo:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    
+    # Delete file from disk
+    file_path = UPLOAD_DIR / archivo["nombre_almacenado"]
+    if file_path.exists():
+        file_path.unlink()
+    
+    # Delete from MongoDB
+    await db.archivos_rendicion.delete_one({"id": file_id})
+    
+    return {"message": "Archivo eliminado"}
+
+@sms_router.get("/archivos/download/{file_id}")
+async def download_archivo(file_id: str):
+    from fastapi.responses import FileResponse
+    
+    archivo = await db.archivos_rendicion.find_one({"id": file_id})
+    if not archivo:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    
+    file_path = UPLOAD_DIR / archivo["nombre_almacenado"]
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Archivo no encontrado en disco")
+    
+    return FileResponse(
+        path=str(file_path),
+        filename=archivo["nombre_original"],
+        media_type="application/octet-stream"
+    )
+
 # ========== Original MongoDB routes ==========
 class StatusCheck(BaseModel):
     model_config = ConfigDict(extra="ignore")
