@@ -395,8 +395,8 @@ function SeguimientoView({ user }) {
                 {indicadores.map(ind => <option key={ind.id_indicador} value={ind.id_indicador}>{ind.codi} - {ind.indicador_resultado?.substring(0, 80)}...</option>)}
               </select>
             </div>
-            <button onClick={saveRendicion} style={{ padding: '12px 24px', background: styles.black, color: styles.white, border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>
-              💾 Guardar
+            <button onClick={saveRendicion} disabled={saving} style={{ padding: '12px 24px', background: saving ? styles.gray500 : styles.black, color: styles.white, border: 'none', borderRadius: 8, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontSize: '0.85rem', opacity: saving ? 0.7 : 1 }}>
+              {saving ? '⏳ Guardando...' : '💾 Guardar'}
             </button>
           </div>
           
