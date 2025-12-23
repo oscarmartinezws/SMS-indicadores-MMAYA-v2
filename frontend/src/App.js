@@ -531,6 +531,39 @@ function SeguimientoView({ user }) {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div style={{ background: styles.white, borderRadius: 12, overflow: 'hidden', maxWidth: 400, width: '90%', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
+            <div style={{ background: confirmMessage.includes('Error') ? styles.red : styles.green, padding: '20px 24px', textAlign: 'center' }}>
+              <div style={{ fontSize: '3rem', marginBottom: 8 }}>{confirmMessage.includes('Error') ? '❌' : '✅'}</div>
+              <h3 style={{ color: styles.white, fontWeight: 700, fontSize: '1.1rem', margin: 0 }}>
+                {confirmMessage.includes('Error') ? 'Error' : '¡Operación Exitosa!'}
+              </h3>
+            </div>
+            <div style={{ padding: 24, textAlign: 'center' }}>
+              <p style={{ fontSize: '0.95rem', color: styles.gray700, marginBottom: 20, lineHeight: 1.5 }}>{confirmMessage}</p>
+              <button 
+                onClick={() => setShowConfirmModal(false)} 
+                style={{ 
+                  padding: '12px 32px', 
+                  background: styles.black, 
+                  color: styles.white, 
+                  border: 'none', 
+                  borderRadius: 8, 
+                  fontWeight: 600, 
+                  cursor: 'pointer', 
+                  fontSize: '0.9rem',
+                  minWidth: 120
+                }}
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
