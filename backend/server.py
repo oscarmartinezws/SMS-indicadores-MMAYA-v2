@@ -781,7 +781,7 @@ async def get_dashboard_summary(
                 a.area_organizacional as area,
                 r.gestion,
                 r.programado,
-                r.logrado_periodo,
+                r.logrado,
                 COALESCE(r.acumulado_ene, 0) + COALESCE(r.acumulado_feb, 0) + COALESCE(r.acumulado_mar, 0) +
                 COALESCE(r.acumulado_abr, 0) + COALESCE(r.acumulado_may, 0) + COALESCE(r.acumulado_jun, 0) +
                 COALESCE(r.acumulado_jul, 0) + COALESCE(r.acumulado_ago, 0) + COALESCE(r.acumulado_sep, 0) +
