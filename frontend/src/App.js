@@ -264,7 +264,7 @@ function IndicadoresView({ user }) {
 }
 
 // UBER Style Seguimiento View
-function SeguimientoView({ user }) {
+function SeguimientoView({ user, siteConfig }) {
   const [indicadores, setIndicadores] = useState([]);
   const [selectedIndicador, setSelectedIndicador] = useState(null);
   const [gestion, setGestion] = useState(new Date().getFullYear());
@@ -272,9 +272,22 @@ function SeguimientoView({ user }) {
   const [rendicion, setRendicion] = useState({});
   const [loading, setLoading] = useState(true);
   const [contexto, setContexto] = useState({});
+  const [configYears, setConfigYears] = useState([]);
 
   const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
   const mesesCortos = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+
+  useEffect(() => {
+    // Load years from config
+    fetch(`${API_URL}/api/sms/configuracion/years`).then(r => r.json()).then(yrs => {
+      setConfigYears(yrs || []);
+      const currentYear = new Date().getFullYear();
+      if (yrs && yrs.length > 0) {
+        const defaultYear = yrs.includes(currentYear) ? currentYear : yrs[yrs.length - 1];
+        setGestion(defaultYear);
+      }
+    }).catch(console.error);
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
