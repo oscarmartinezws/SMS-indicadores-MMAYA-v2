@@ -863,7 +863,7 @@ function HomeView({ user, siteConfig }) {
 
       {/* Footer */}
       <div style={{ textAlign: 'center', marginTop: 30, fontSize: '0.75rem', color: styles.gray500 }}>
-        © 2025 - Sistema de Monitoreo Sectorial
+        {siteConfig?.copyright_text || '© 2025 - Sistema de Monitoreo Sectorial'}
       </div>
     </div>
   );
