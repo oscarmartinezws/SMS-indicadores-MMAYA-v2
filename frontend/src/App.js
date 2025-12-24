@@ -269,91 +269,92 @@ function SeguimientoView({ user }) {
   if (loading) return <div style={{ textAlign: 'center', padding: 40 }}>Cargando...</div>;
 
   const cellInput = { width: '100%', padding: '4px 6px', fontSize: '0.75rem', border: `1px solid ${styles.gray300}`, borderRadius: 4, textAlign: 'center', boxSizing: 'border-box' };
+  const darkHeader = { background: styles.gray800, color: styles.white, padding: '10px 16px', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' };
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ fontWeight: 700, fontSize: '1.2rem' }}>Seguimiento de Indicadores</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => {}} style={{ padding: '8px 16px', background: styles.white, color: styles.black, border: `2px solid ${styles.black}`, borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.8rem' }}>
-            Finalizar actualización
-          </button>
-        </div>
-      </div>
+      <h2 style={{ fontWeight: 700, fontSize: '1.2rem', marginBottom: 16 }}>Seguimiento de Indicadores</h2>
 
-      {/* Context Header - UBER Style */}
+      {/* Context Header - Dark Style */}
       <div style={{ background: styles.white, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 16 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${styles.gray200}` }}>
+        <div style={darkHeader}>CONTEXTO DEL USUARIO</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)' }}>
           {[{ label: 'ENTIDAD', value: contexto.entidad || '-' }, { label: 'ÁREA', value: contexto.area || '-' }, { label: 'SECTOR', value: contexto.sector || '-' },
-            { label: 'AÑO', value: <select value={gestion} onChange={(e) => setGestion(parseInt(e.target.value))} style={{ ...cellInput, background: styles.white }}>{[2023,2024,2025,2026].map(y => <option key={y} value={y}>{y}</option>)}</select> },
-            { label: 'MES', value: <select value={mes} onChange={(e) => setMes(e.target.value)} style={{ ...cellInput, background: styles.white }}>{meses.map(m => <option key={m} value={m}>{m}</option>)}</select> },
-            { label: 'ESTADO', value: <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 600, background: '#D1FAE5', color: styles.green }}>ABIERTO</span> }
+            { label: 'AÑO', value: <select value={gestion} onChange={(e) => setGestion(parseInt(e.target.value))} style={{ ...cellInput, background: styles.white, width: '100%' }}>{[2023,2024,2025,2026].map(y => <option key={y} value={y}>{y}</option>)}</select> },
+            { label: 'MES', value: <select value={mes} onChange={(e) => setMes(e.target.value)} style={{ ...cellInput, background: styles.white, width: '100%' }}>{meses.map(m => <option key={m} value={m}>{m}</option>)}</select> },
+            { label: 'ESTADO', value: <span style={{ padding: '4px 12px', borderRadius: 4, fontSize: '0.7rem', fontWeight: 600, background: '#D1FAE5', color: styles.green }}>ABIERTO</span> }
           ].map((item, i) => (
             <div key={i} style={{ padding: '12px 16px', borderRight: i < 5 ? `1px solid ${styles.gray200}` : 'none' }}>
-              <div style={{ fontSize: '0.65rem', fontWeight: 600, color: styles.gray500, textTransform: 'uppercase', marginBottom: 6 }}>{item.label}</div>
+              <div style={{ fontSize: '0.6rem', fontWeight: 600, color: styles.gray500, textTransform: 'uppercase', marginBottom: 6 }}>{item.label}</div>
               <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>{item.value}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Indicator Selector - UBER Style */}
-      <div style={{ background: styles.white, borderRadius: 8, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 16 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'end' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: styles.gray500, textTransform: 'uppercase', marginBottom: 8 }}>Seleccionar Indicador</label>
-            <select value={selectedIndicador?.id_indicador || ''} onChange={(e) => setSelectedIndicador(indicadores.find(i => i.id_indicador === parseInt(e.target.value)))}
-              style={{ width: '100%', padding: 12, fontSize: '0.85rem', border: `2px solid ${styles.gray300}`, borderRadius: 8, background: styles.white }}>
-              {indicadores.map(ind => <option key={ind.id_indicador} value={ind.id_indicador}>{ind.codi} - {ind.indicador_resultado?.substring(0, 80)}...</option>)}
-            </select>
+      {/* Indicator Selector - Dark Header */}
+      <div style={{ background: styles.white, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 16 }}>
+        <div style={darkHeader}>SELECCIÓN DE INDICADOR</div>
+        <div style={{ padding: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'end' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 600, color: styles.gray500, textTransform: 'uppercase', marginBottom: 8 }}>INDICADOR</label>
+              <select value={selectedIndicador?.id_indicador || ''} onChange={(e) => setSelectedIndicador(indicadores.find(i => i.id_indicador === parseInt(e.target.value)))}
+                style={{ width: '100%', padding: 12, fontSize: '0.85rem', border: `2px solid ${styles.gray300}`, borderRadius: 8, background: styles.white }}>
+                {indicadores.map(ind => <option key={ind.id_indicador} value={ind.id_indicador}>{ind.codi} - {ind.indicador_resultado?.substring(0, 80)}...</option>)}
+              </select>
+            </div>
+            <button onClick={saveRendicion} style={{ padding: '12px 24px', background: styles.black, color: styles.white, border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>
+              💾 Guardar
+            </button>
           </div>
-          <button onClick={saveRendicion} style={{ padding: '12px 24px', background: styles.black, color: styles.white, border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>
-            💾 Guardar
-          </button>
+          
+          {selectedIndicador && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${styles.gray200}` }}>
+              <div><div style={{ fontSize: '0.6rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>AÑO BASE</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.anio_base || '-'}</div></div>
+              <div><div style={{ fontSize: '0.6rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>LÍNEA BASE</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.linea_base || '-'}</div></div>
+              <div><div style={{ fontSize: '0.6rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>AÑO LOGRO</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.anio_logro || '-'}</div></div>
+              <div><div style={{ fontSize: '0.6rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>LOGRO PROGRAMADO</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.logro || '-'}</div></div>
+            </div>
+          )}
         </div>
-        
-        {selectedIndicador && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${styles.gray200}` }}>
-            <div><div style={{ fontSize: '0.65rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>AÑO BASE</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.anio_base || '-'}</div></div>
-            <div><div style={{ fontSize: '0.65rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>LÍNEA BASE</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.linea_base || '-'}</div></div>
-            <div><div style={{ fontSize: '0.65rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>AÑO LOGRO</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.anio_logro || '-'}</div></div>
-            <div><div style={{ fontSize: '0.65rem', fontWeight: 600, color: styles.gray500, marginBottom: 4 }}>LOGRO PROGRAMADO</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{selectedIndicador.logro || '-'}</div></div>
-          </div>
-        )}
       </div>
 
-      {/* Monthly Grid - UBER Style */}
-      <div style={{ background: styles.white, borderRadius: 8, overflow: 'auto', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 16 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
-          <thead>
-            <tr>
-              <th style={{ ...headerStyle, width: 100 }}>#</th>
-              {mesesCortos.map(m => <th key={m} style={{ ...headerStyle, textAlign: 'center', minWidth: 60 }}>{m}</th>)}
-              <th style={{ ...headerStyle, textAlign: 'center', background: styles.red }}>LOGRADO</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[{ key: 'ejecutado', label: 'EJECUCIÓN' }, { key: 'proc_ejecutado', label: '% EJEC' }, { key: 'acumulado', label: 'ACUMULADO' }].map(row => (
-              <tr key={row.key} style={{ borderBottom: `1px solid ${styles.gray200}` }}>
-                <td style={{ ...rowStyle, fontWeight: 600, background: styles.gray100 }}>{row.label}</td>
-                {mesesCortos.map(m => (
-                  <td key={m} style={{ ...rowStyle, padding: 4 }}>
-                    <input type="number" step={row.key === 'proc_ejecutado' ? '0.001' : '1'} value={rendicion[`${row.key}_${m.toLowerCase()}`] || ''} onChange={(e) => handleChange(`${row.key}_${m.toLowerCase()}`, e.target.value)} style={cellInput} />
-                  </td>
-                ))}
-                <td style={{ ...rowStyle, textAlign: 'center', background: '#FEE2E2', fontWeight: 600 }}>{row.key === 'ejecutado' ? (rendicion.logrado_periodo || '-') : ''}</td>
+      {/* Monthly Grid - Dark Header */}
+      <div style={{ background: styles.white, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 16 }}>
+        <div style={darkHeader}>REGISTRO MENSUAL DE EJECUCIÓN</div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+            <thead>
+              <tr>
+                <th style={{ ...headerStyle, width: 100, background: styles.gray700 }}>#</th>
+                {mesesCortos.map((m, i) => <th key={m} style={{ ...headerStyle, textAlign: 'center', minWidth: 55, background: i === 0 ? styles.green : styles.gray700 }}>{m}</th>)}
+                <th style={{ ...headerStyle, textAlign: 'center', background: styles.blue, minWidth: 80 }}>PROGRAMADO</th>
+                <th style={{ ...headerStyle, textAlign: 'center', background: styles.red, minWidth: 70 }}>LOGRADO</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {[{ key: 'ejecutado', label: 'EJECUCIÓN' }, { key: 'proc_ejecutado', label: '% EJEC' }, { key: 'acumulado', label: 'ACUMULADO' }].map(row => (
+                <tr key={row.key} style={{ borderBottom: `1px solid ${styles.gray200}` }}>
+                  <td style={{ ...rowStyle, fontWeight: 600, background: styles.gray100 }}>{row.label}</td>
+                  {mesesCortos.map((m, i) => (
+                    <td key={m} style={{ ...rowStyle, padding: 4, background: i === 0 ? '#D1FAE5' : 'transparent' }}>
+                      <input type="number" step={row.key === 'proc_ejecutado' ? '0.001' : '1'} value={rendicion[`${row.key}_${m.toLowerCase()}`] || ''} onChange={(e) => handleChange(`${row.key}_${m.toLowerCase()}`, e.target.value)} style={cellInput} />
+                    </td>
+                  ))}
+                  <td style={{ ...rowStyle, textAlign: 'center', background: '#DBEAFE', fontWeight: 600 }}>{row.key === 'ejecutado' ? (selectedIndicador?.logro || '-') : ''}</td>
+                  <td style={{ ...rowStyle, textAlign: 'center', background: '#FEE2E2', fontWeight: 600 }}>{row.key === 'ejecutado' ? (rendicion.logrado || '-') : ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Qualitative Description - UBER Style */}
+      {/* Qualitative Description - Dark Headers */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
         <div style={{ background: styles.white, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-          <div style={{ padding: '12px 16px', borderBottom: `1px solid ${styles.gray200}` }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: styles.gray700 }}>Descripción Cualitativa del Avance</span>
-          </div>
+          <div style={darkHeader}>DESCRIPCIÓN CUALITATIVA DEL AVANCE</div>
           <div style={{ padding: 16 }}>
             <textarea value={rendicion.descripcion_cualitativa || ''} onChange={(e) => handleChange('descripcion_cualitativa', e.target.value)} rows={5}
               style={{ width: '100%', padding: 12, border: `2px solid ${styles.gray300}`, borderRadius: 8, fontSize: '0.85rem', resize: 'vertical', boxSizing: 'border-box' }}
@@ -361,9 +362,7 @@ function SeguimientoView({ user }) {
           </div>
         </div>
         <div style={{ background: styles.white, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-          <div style={{ padding: '12px 16px', borderBottom: `1px solid ${styles.gray200}` }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: styles.gray700 }}>Modificaciones</span>
-          </div>
+          <div style={darkHeader}>MODIFICACIONES</div>
           <div style={{ padding: 16 }}>
             <textarea value={rendicion.modificaciones || ''} onChange={(e) => handleChange('modificaciones', e.target.value)} rows={5}
               style={{ width: '100%', padding: 12, border: `2px solid ${styles.gray300}`, borderRadius: 8, fontSize: '0.85rem', resize: 'vertical', boxSizing: 'border-box' }}
@@ -372,11 +371,11 @@ function SeguimientoView({ user }) {
         </div>
       </div>
 
-      {/* Attachments - UBER Style */}
+      {/* Attachments - Dark Header */}
       <div style={{ background: styles.white, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${styles.gray200}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: styles.gray700 }}>Archivos Adjuntos</span>
-          <button style={{ padding: '6px 12px', background: styles.black, color: styles.white, border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem' }}>+ Agregar archivo</button>
+        <div style={{ ...darkHeader, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>ARCHIVOS ADJUNTOS</span>
+          <button style={{ padding: '6px 12px', background: styles.white, color: styles.black, border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem' }}>+ Agregar archivo</button>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr>{['NOMBRE', 'DESCRIPCIÓN', 'TAMAÑO', 'ACCIÓN'].map(h => <th key={h} style={headerStyle}>{h}</th>)}</tr></thead>
