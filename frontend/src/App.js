@@ -168,12 +168,11 @@ function IndicadoresView({ user }) {
   useEffect(() => {
     const fetchIndicadores = async () => {
       try {
-        // Admin (rol 1) sees all, others see only their area's indicators
-        const isAdmin = user?.id_rol === 1;
-        const endpoint = isAdmin 
-          ? `${API_URL}/api/sms/matriz_parametros`
-          : `${API_URL}/api/sms/indicadores/area/${user?.id_area}`;
-        const res = await fetch(endpoint);
+        const token = localStorage.getItem('sms_token');
+        // Use the main endpoint that handles filtering based on user role
+        const res = await fetch(`${API_URL}/api/sms/matriz_parametros`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         setData(await res.json());
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
