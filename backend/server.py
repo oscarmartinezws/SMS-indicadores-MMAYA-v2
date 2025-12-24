@@ -716,6 +716,152 @@ async def get_user_context(id_area: int):
             "sector": sector_data['sector'] if sector_data else "-"
         }
 
+# ========== Dashboard Endpoints ==========
+@sms_router.get("/dashboard/summary")
+async def get_dashboard_summary(
+    year: int = None,
+    id_sector: int = None,
+    id_entidad: int = None,
+    id_area: int = None,
+    user: dict = Depends(get_current_user)
+):
+    """Get aggregated dashboard data for charts"""
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        # Build filters
+        filters = []
+        params = []
+        param_idx = 1
+        
+        if year:
+            filters.append(f"r.gestion = ${param_idx}")
+            params.append(year)
+            param_idx += 1
+        
+        if id_sector:
+            filters.append(f"mp.id_sector = ${param_idx}")
+            params.append(id_sector)
+            param_idx += 1
+        
+        if id_entidad:
+            filters.append(f"mp.id_entidad = ${param_idx}")
+            params.append(id_entidad)
+            param_idx += 1
+            
+        if id_area:
+            filters.append(f"mp.id_area = ${param_idx}")
+            params.append(id_area)
+            param_idx += 1
+        
+        # Non-admin users can only see their area data
+        if user.get('rol') != 'ADMINISTRADOR' and user.get('id_area'):
+            filters.append(f"mp.id_area = ${param_idx}")
+            params.append(user.get('id_area'))
+            param_idx += 1
+        
+        where_clause = " AND ".join(filters) if filters else "1=1"
+        
+        # Get total indicators count
+        total_query = f"""
+            SELECT COUNT(DISTINCT mp.id_indicador) as total
+            FROM matriz_parametro mp
+            LEFT JOIN rendicion r ON mp.id_indicador = r.id_indicador
+            WHERE {where_clause.replace('r.gestion', 'COALESCE(r.gestion, 0) >= 0')}
+        """
+        total_row = await conn.fetchrow(total_query, *[p for p in params if 'gestion' not in str(p)])
+        
+        # Get indicators with rendition data
+        data_query = f"""
+            SELECT 
+                mp.id_indicador,
+                mp.indicador_resultado,
+                mp.logro as logro_programado,
+                s.sector,
+                e.entidad,
+                a.area_organizacional as area,
+                r.gestion,
+                r.programado,
+                r.logrado_periodo,
+                COALESCE(r.acumulado_ene, 0) + COALESCE(r.acumulado_feb, 0) + COALESCE(r.acumulado_mar, 0) +
+                COALESCE(r.acumulado_abr, 0) + COALESCE(r.acumulado_may, 0) + COALESCE(r.acumulado_jun, 0) +
+                COALESCE(r.acumulado_jul, 0) + COALESCE(r.acumulado_ago, 0) + COALESCE(r.acumulado_sep, 0) +
+                COALESCE(r.acumulado_oct, 0) + COALESCE(r.acumulado_nov, 0) + COALESCE(r.acumulado_dic, 0) as total_acumulado
+            FROM matriz_parametro mp
+            LEFT JOIN sector s ON mp.id_sector = s.id_sector
+            LEFT JOIN entidad e ON mp.id_entidad = e.id_entidad
+            LEFT JOIN area a ON mp.id_area = a.id_area
+            LEFT JOIN rendicion r ON mp.id_indicador = r.id_indicador
+            WHERE {where_clause}
+            ORDER BY mp.id_indicador
+        """
+        rows = await conn.fetch(data_query, *params)
+        
+        # Process data for charts
+        indicators = [dict(r) for r in rows]
+        
+        # Summary by sector
+        sector_summary = {}
+        for ind in indicators:
+            sector = ind.get('sector') or 'Sin Sector'
+            if sector not in sector_summary:
+                sector_summary[sector] = {'total': 0, 'con_avance': 0, 'acumulado': 0}
+            sector_summary[sector]['total'] += 1
+            if ind.get('total_acumulado') and ind['total_acumulado'] > 0:
+                sector_summary[sector]['con_avance'] += 1
+                sector_summary[sector]['acumulado'] += float(ind['total_acumulado'])
+        
+        # Summary by entity
+        entidad_summary = {}
+        for ind in indicators:
+            entidad = ind.get('entidad') or 'Sin Entidad'
+            if entidad not in entidad_summary:
+                entidad_summary[entidad] = {'total': 0, 'con_avance': 0, 'acumulado': 0}
+            entidad_summary[entidad]['total'] += 1
+            if ind.get('total_acumulado') and ind['total_acumulado'] > 0:
+                entidad_summary[entidad]['con_avance'] += 1
+                entidad_summary[entidad]['acumulado'] += float(ind['total_acumulado'])
+        
+        # Summary by area
+        area_summary = {}
+        for ind in indicators:
+            area = ind.get('area') or 'Sin Área'
+            if area not in area_summary:
+                area_summary[area] = {'total': 0, 'con_avance': 0, 'acumulado': 0}
+            area_summary[area]['total'] += 1
+            if ind.get('total_acumulado') and ind['total_acumulado'] > 0:
+                area_summary[area]['con_avance'] += 1
+                area_summary[area]['acumulado'] += float(ind['total_acumulado'])
+        
+        # General summary
+        total_indicators = len(indicators)
+        with_progress = sum(1 for i in indicators if i.get('total_acumulado') and i['total_acumulado'] > 0)
+        
+        return {
+            "general": {
+                "total_indicadores": total_indicators,
+                "con_avance": with_progress,
+                "sin_avance": total_indicators - with_progress,
+                "porcentaje_avance": round((with_progress / total_indicators * 100) if total_indicators > 0 else 0, 2)
+            },
+            "por_sector": [{"nombre": k, **v} for k, v in sector_summary.items()],
+            "por_entidad": [{"nombre": k, **v} for k, v in entidad_summary.items()],
+            "por_area": [{"nombre": k, **v} for k, v in area_summary.items()],
+            "indicadores": indicators[:50]  # Limit for performance
+        }
+
+@sms_router.get("/dashboard/years")
+async def get_available_years():
+    """Get available years from rendicion table"""
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("SELECT DISTINCT gestion FROM rendicion WHERE gestion IS NOT NULL ORDER BY gestion DESC")
+        years = [r['gestion'] for r in rows]
+        # Add current year if not in list
+        current_year = datetime.now().year
+        if current_year not in years:
+            years.insert(0, current_year)
+        return years
+
 # ========== Rendicion ==========
 @sms_router.get("/rendicion/{id_indicador}/{gestion}")
 async def get_rendicion(id_indicador: int, gestion: int):
