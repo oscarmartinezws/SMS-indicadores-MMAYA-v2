@@ -456,10 +456,23 @@ async def update_accion(id: int, item: GenericItemWithCode):
 
 # ========== Indicadores (Matriz Parametro) ==========
 @sms_router.get("/matriz_parametros")
-async def get_indicadores():
+async def get_indicadores(user: dict = Depends(get_current_user)):
     pool = await get_pg_pool()
     async with pool.acquire() as conn:
-        rows = await conn.fetch("SELECT * FROM matriz_parametro ORDER BY id_indicador")
+        # Si el usuario es administrador, mostrar todos los indicadores
+        # Si no, filtrar por el área del usuario usando matriz_parametro
+        if user.get('rol') == 'ADMINISTRADOR':
+            rows = await conn.fetch("SELECT * FROM matriz_parametro ORDER BY id_indicador")
+        else:
+            # Filtrar indicadores por el área del usuario
+            user_area = user.get('id_area')
+            if user_area:
+                rows = await conn.fetch(
+                    "SELECT * FROM matriz_parametro WHERE id_area = $1 ORDER BY id_indicador",
+                    user_area
+                )
+            else:
+                rows = []
         return [dict(r) for r in rows]
 
 @sms_router.get("/indicadores/area/{id_area}")
