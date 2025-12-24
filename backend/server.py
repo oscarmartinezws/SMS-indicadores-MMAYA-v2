@@ -910,6 +910,61 @@ async def save_rendicion(data: dict):
             row = await conn.fetchrow(query, *values)
             return dict(row)
 
+# ========== Site Configuration ==========
+class SiteConfig(BaseModel):
+    plan_anio_inicio: int = 2020
+    plan_anio_fin: int = 2025
+    favicon_url: Optional[str] = None
+    logo_url: Optional[str] = None
+    logo_width: int = 40
+    logo_height: int = 40
+    color_theme: str = "negro"  # negro, azul, rosa
+    modo: str = "claro"  # claro, oscuro
+    copyright_text: str = "© 2025 - Sistema de Monitoreo Sectorial"
+
+@sms_router.get("/configuracion")
+async def get_site_config():
+    """Get site configuration"""
+    config = await db.site_config.find_one({"_id": "site_config"}, {"_id": 0})
+    if not config:
+        # Return default config
+        return SiteConfig().model_dump()
+    return config
+
+@sms_router.post("/configuracion")
+async def save_site_config(config: dict):
+    """Save site configuration"""
+    # Validate and set defaults
+    validated = {
+        "plan_anio_inicio": config.get("plan_anio_inicio", 2020),
+        "plan_anio_fin": config.get("plan_anio_fin", 2025),
+        "favicon_url": config.get("favicon_url"),
+        "logo_url": config.get("logo_url"),
+        "logo_width": config.get("logo_width", 40),
+        "logo_height": config.get("logo_height", 40),
+        "color_theme": config.get("color_theme", "negro"),
+        "modo": config.get("modo", "claro"),
+        "copyright_text": config.get("copyright_text", "© 2025 - Sistema de Monitoreo Sectorial")
+    }
+    
+    await db.site_config.update_one(
+        {"_id": "site_config"},
+        {"$set": validated},
+        upsert=True
+    )
+    return {"message": "Configuración guardada", "config": validated}
+
+@sms_router.get("/configuracion/years")
+async def get_config_years():
+    """Get years based on plan configuration"""
+    config = await db.site_config.find_one({"_id": "site_config"}, {"_id": 0})
+    if not config:
+        config = SiteConfig().model_dump()
+    
+    start = config.get("plan_anio_inicio", 2020)
+    end = config.get("plan_anio_fin", 2025)
+    return list(range(start, end + 1))
+
 # ========== Original MongoDB routes ==========
 class StatusCheck(BaseModel):
     model_config = ConfigDict(extra="ignore")
