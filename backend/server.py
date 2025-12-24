@@ -28,7 +28,7 @@ PG_CONFIG = {
     'port': 5432,
     'database': 'sms',
     'user': 'admin_sibelys',
-    'password': 'P1c010c0#2026',
+    'password': 'sibelys2026',
     'command_timeout': 60
 }
 
