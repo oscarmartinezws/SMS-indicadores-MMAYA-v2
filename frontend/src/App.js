@@ -595,7 +595,7 @@ function UsuariosView() {
 }
 
 // Home View with Dashboard
-function HomeView({ user }) {
+function HomeView({ user, siteConfig }) {
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
   const [years, setYears] = useState([]);
@@ -607,7 +607,7 @@ function HomeView({ user }) {
   const COLORS = ['#000000', '#09AA5B', '#0066CC', '#E11900', '#6B6B6B', '#CACACA', '#545454', '#A0A0A0'];
 
   useEffect(() => {
-    // Load filter options
+    // Load filter options - use config years
     Promise.all([
       fetch(`${API_URL}/api/sms/dashboard/years`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('sms_token')}` } }).then(r => r.json()),
       fetch(`${API_URL}/api/sms/sectores`).then(r => r.json()),
