@@ -607,9 +607,9 @@ function HomeView({ user, siteConfig }) {
   const COLORS = ['#000000', '#09AA5B', '#0066CC', '#E11900', '#6B6B6B', '#CACACA', '#545454', '#A0A0A0'];
 
   useEffect(() => {
-    // Load filter options - use config years
+    // Load filter options - use config years from plan sectorial
     Promise.all([
-      fetch(`${API_URL}/api/sms/dashboard/years`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('sms_token')}` } }).then(r => r.json()),
+      fetch(`${API_URL}/api/sms/configuracion/years`).then(r => r.json()),
       fetch(`${API_URL}/api/sms/sectores`).then(r => r.json()),
       fetch(`${API_URL}/api/sms/entidades`).then(r => r.json()),
       fetch(`${API_URL}/api/sms/areas`).then(r => r.json())
@@ -618,12 +618,14 @@ function HomeView({ user, siteConfig }) {
       setSectors(sec || []);
       setEntidades(ent || []);
       setAreas(ar || []);
-      // Set current year as default
+      // Set current year as default if in range
+      const currentYear = new Date().getFullYear();
       if (yrs && yrs.length > 0) {
-        setFilters(prev => ({ ...prev, year: yrs[0] }));
+        const defaultYear = yrs.includes(currentYear) ? currentYear : yrs[yrs.length - 1];
+        setFilters(prev => ({ ...prev, year: defaultYear }));
       }
     }).catch(console.error);
-  }, []);
+  }, [siteConfig]);
 
   useEffect(() => {
     fetchDashboardData();
