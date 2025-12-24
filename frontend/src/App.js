@@ -228,14 +228,15 @@ function SeguimientoView({ user }) {
   useEffect(() => {
     const loadData = async () => {
       try {
+        const token = localStorage.getItem('sms_token');
         if (user?.id_area) {
           const ctxRes = await fetch(`${API_URL}/api/sms/contexto_usuario/${user.id_area}`);
           if (ctxRes.ok) setContexto(await ctxRes.json());
         }
-        // Admin sees all, others see only their area's indicators
-        const isAdmin = user?.id_rol === 1;
-        const endpoint = isAdmin ? `${API_URL}/api/sms/matriz_parametros` : `${API_URL}/api/sms/indicadores/area/${user?.id_area}`;
-        const indRes = await fetch(endpoint);
+        // Use the main endpoint that handles filtering based on user role
+        const indRes = await fetch(`${API_URL}/api/sms/matriz_parametros`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         const indData = await indRes.json();
         setIndicadores(indData);
         if (indData.length > 0) setSelectedIndicador(indData[0]);
