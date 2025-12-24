@@ -270,6 +270,10 @@ function SeguimientoView({ user }) {
 
   const cellInput = { width: '100%', padding: '4px 6px', fontSize: '0.75rem', border: `1px solid ${styles.gray300}`, borderRadius: 4, textAlign: 'center', boxSizing: 'border-box' };
   const darkHeader = { background: styles.gray800, color: styles.white, padding: '10px 16px', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' };
+  
+  // Get selected month index
+  const mesSeleccionadoIndex = meses.indexOf(mes);
+  const mesCortoSeleccionado = mesesCortos[mesSeleccionadoIndex];
 
   return (
     <div>
@@ -320,7 +324,7 @@ function SeguimientoView({ user }) {
         </div>
       </div>
 
-      {/* Monthly Grid - Dark Header */}
+      {/* Monthly Grid - Dark Header - Only selected month is editable */}
       <div style={{ background: styles.white, borderRadius: 8, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: 16 }}>
         <div style={darkHeader}>REGISTRO MENSUAL DE EJECUCIÓN</div>
         <div style={{ overflowX: 'auto' }}>
@@ -328,7 +332,9 @@ function SeguimientoView({ user }) {
             <thead>
               <tr>
                 <th style={{ ...headerStyle, width: 100, background: styles.gray700 }}>#</th>
-                {mesesCortos.map((m, i) => <th key={m} style={{ ...headerStyle, textAlign: 'center', minWidth: 55, background: i === 0 ? styles.green : styles.gray700 }}>{m}</th>)}
+                {mesesCortos.map((m, i) => (
+                  <th key={m} style={{ ...headerStyle, textAlign: 'center', minWidth: 55, background: i === mesSeleccionadoIndex ? styles.green : styles.gray700 }}>{m}</th>
+                ))}
                 <th style={{ ...headerStyle, textAlign: 'center', background: styles.blue, minWidth: 80 }}>PROGRAMADO</th>
                 <th style={{ ...headerStyle, textAlign: 'center', background: styles.red, minWidth: 70 }}>LOGRADO</th>
               </tr>
@@ -337,13 +343,33 @@ function SeguimientoView({ user }) {
               {[{ key: 'ejecutado', label: 'EJECUCIÓN' }, { key: 'proc_ejecutado', label: '% EJEC' }, { key: 'acumulado', label: 'ACUMULADO' }].map(row => (
                 <tr key={row.key} style={{ borderBottom: `1px solid ${styles.gray200}` }}>
                   <td style={{ ...rowStyle, fontWeight: 600, background: styles.gray100 }}>{row.label}</td>
-                  {mesesCortos.map((m, i) => (
-                    <td key={m} style={{ ...rowStyle, padding: 4, background: i === 0 ? '#D1FAE5' : 'transparent' }}>
-                      <input type="number" step={row.key === 'proc_ejecutado' ? '0.001' : '1'} value={rendicion[`${row.key}_${m.toLowerCase()}`] || ''} onChange={(e) => handleChange(`${row.key}_${m.toLowerCase()}`, e.target.value)} style={cellInput} />
-                    </td>
-                  ))}
-                  <td style={{ ...rowStyle, textAlign: 'center', background: '#DBEAFE', fontWeight: 600 }}>{row.key === 'ejecutado' ? (selectedIndicador?.logro || '-') : ''}</td>
-                  <td style={{ ...rowStyle, textAlign: 'center', background: '#FEE2E2', fontWeight: 600 }}>{row.key === 'ejecutado' ? (rendicion.logrado || '-') : ''}</td>
+                  {mesesCortos.map((m, i) => {
+                    const isSelected = i === mesSeleccionadoIndex;
+                    const fieldName = `${row.key}_${m.toLowerCase()}`;
+                    return (
+                      <td key={m} style={{ ...rowStyle, padding: 4, background: isSelected ? '#D1FAE5' : 'transparent' }}>
+                        {isSelected ? (
+                          <input 
+                            type="number" 
+                            step={row.key === 'proc_ejecutado' ? '0.001' : '1'} 
+                            value={rendicion[fieldName] || ''} 
+                            onChange={(e) => handleChange(fieldName, e.target.value)} 
+                            style={cellInput} 
+                          />
+                        ) : (
+                          <span style={{ display: 'block', textAlign: 'center', fontSize: '0.75rem', color: styles.gray600 }}>
+                            {rendicion[fieldName] || ''}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td style={{ ...rowStyle, textAlign: 'center', background: '#DBEAFE', fontWeight: 600, color: styles.blue }}>
+                    {row.key === 'ejecutado' ? (selectedIndicador?.logro || '-') : ''}
+                  </td>
+                  <td style={{ ...rowStyle, textAlign: 'center', background: '#FEE2E2', fontWeight: 600, color: styles.red }}>
+                    {row.key === 'ejecutado' ? (rendicion.logrado || '-') : ''}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -378,7 +404,7 @@ function SeguimientoView({ user }) {
           <button style={{ padding: '6px 12px', background: styles.white, color: styles.black, border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: '0.7rem' }}>+ Agregar archivo</button>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr>{['NOMBRE', 'DESCRIPCIÓN', 'TAMAÑO', 'ACCIÓN'].map(h => <th key={h} style={headerStyle}>{h}</th>)}</tr></thead>
+          <thead><tr>{['NOMBRE', 'DESCRIPCIÓN', 'TAMAÑO', 'ACCIONES'].map(h => <th key={h} style={headerStyle}>{h}</th>)}</tr></thead>
           <tbody>
             <tr><td colSpan={4} style={{ ...rowStyle, textAlign: 'center', color: styles.gray500, padding: 24 }}>No hay archivos adjuntos</td></tr>
           </tbody>
