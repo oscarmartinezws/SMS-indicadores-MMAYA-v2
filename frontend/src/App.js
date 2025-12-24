@@ -68,7 +68,7 @@ function Login({ onLogin }) {
           <button type="submit" disabled={loading} style={{ width: '100%', padding: 14, fontSize: '1rem', fontWeight: 600, background: styles.black, color: styles.white, border: 'none', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, marginTop: 8 }}>{loading ? 'Ingresando...' : 'Iniciar Sesión'}</button>
           {error && <div style={{ background: '#FEE2E2', color: styles.red, padding: '12px 16px', borderRadius: 8, marginTop: 20, display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.9rem' }}><span>⚠️</span> {error}</div>}
         </form>
-        <div style={{ textAlign: 'center', marginTop: 32, fontSize: '0.8rem', color: styles.gray500 }}>MMAYA © 2025 - Todos los derechos reservados</div>
+        <div style={{ textAlign: 'center', marginTop: 32, fontSize: '0.8rem', color: styles.gray500 }}>© 2025 - Todos los derechos reservados</div>
       </div>
     </div>
   );
@@ -592,7 +592,7 @@ function HomeView({ user }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
           <h1 style={{ fontWeight: 700, fontSize: '1.4rem', marginBottom: 4 }}>Dashboard de Indicadores</h1>
-          <p style={{ color: styles.gray600, fontSize: '0.85rem' }}>Sistema de Monitoreo Sectorial - MMAYA</p>
+          <p style={{ color: styles.gray600, fontSize: '0.85rem' }}>Sistema de Monitoreo Sectorial</p>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: '0.75rem', color: styles.gray500 }}>Bienvenido,</div>
@@ -787,7 +787,7 @@ function HomeView({ user }) {
 
       {/* Footer */}
       <div style={{ textAlign: 'center', marginTop: 30, fontSize: '0.75rem', color: styles.gray500 }}>
-        MMAYA © 2025 - Sistema de Monitoreo Sectorial
+        © 2025 - Sistema de Monitoreo Sectorial
       </div>
     </div>
   );
