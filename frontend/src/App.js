@@ -697,12 +697,13 @@ function SeguimientoView({ user }) {
           <span style={{ fontSize: '0.7rem', fontWeight: 600, color: styles.white, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Registro Mensual de Ejecución</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 950 }}>
             <thead>
               <tr>
                 <th style={{ ...headerStyle, width: 100 }}>#</th>
-                {mesesCortos.map((m, idx) => <th key={m} style={{ ...headerStyle, textAlign: 'center', minWidth: 60, background: idx === getMesIndex() ? styles.green : styles.black }}>{m}</th>)}
-                <th style={{ ...headerStyle, textAlign: 'center', background: styles.red }}>LOGRADO</th>
+                {mesesCortos.map((m, idx) => <th key={m} style={{ ...headerStyle, textAlign: 'center', minWidth: 55, background: idx === getMesIndex() ? styles.green : styles.black }}>{m}</th>)}
+                <th style={{ ...headerStyle, textAlign: 'center', background: styles.blue, minWidth: 70 }}>PROGRAMADO</th>
+                <th style={{ ...headerStyle, textAlign: 'center', background: styles.red, minWidth: 70 }}>LOGRADO</th>
               </tr>
             </thead>
             <tbody>
@@ -724,7 +725,8 @@ function SeguimientoView({ user }) {
                       </td>
                     );
                   })}
-                  <td style={{ ...rowStyle, textAlign: 'center', background: '#FEE2E2', fontWeight: 600 }}>{row.key === 'ejecutado' ? (rendicion.logrado_periodo || '-') : ''}</td>
+                  <td style={{ ...rowStyle, textAlign: 'center', background: '#DBEAFE', fontWeight: 600, color: styles.blue }}>{row.key === 'ejecutado' ? (rendicion.programado_periodo || selectedIndicador?.logro || '-') : ''}</td>
+                  <td style={{ ...rowStyle, textAlign: 'center', background: '#FEE2E2', fontWeight: 600, color: styles.red }}>{row.key === 'ejecutado' ? (rendicion.logrado_periodo || '-') : ''}</td>
                 </tr>
               ))}
             </tbody>
