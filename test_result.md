@@ -101,3 +101,110 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Sistema SMS - Dashboard gráfico y filtrado de indicadores por área"
+
+backend:
+  - task: "Login endpoint con JWT"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Login funciona con credenciales correctas"
+
+  - task: "Filtrado de indicadores por área (RBAC)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Admin ve 70 indicadores, usuario limitado ve 11. Filtrado basado en rol y id_area del JWT"
+
+  - task: "Dashboard Summary API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Endpoint /api/sms/dashboard/summary retorna datos agregados por sector, entidad y área"
+
+  - task: "Dashboard Years API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Endpoint /api/sms/dashboard/years retorna años disponibles"
+
+frontend:
+  - task: "Dashboard con gráficos"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Dashboard implementado con Recharts - KPIs, gráficos de barras por sector/entidad/área, gráfico de torta, tabla resumen"
+
+  - task: "Filtros del Dashboard"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Filtros por Año, Sector, Entidad y Área funcionando"
+
+  - task: "Banco de Indicadores con filtrado por rol"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Vista actualizada para usar endpoint con autenticación JWT que filtra por área"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: true
+
+test_plan:
+  current_focus:
+    - "Dashboard con gráficos"
+    - "Filtrado de indicadores por área"
+    - "Filtros del Dashboard"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Implementé el Dashboard gráfico y el filtrado de indicadores por área. Credenciales: Admin=omartinez/P1c0l0c0, Limitado=jperez/P1c0l0c0. El dashboard muestra KPIs, gráficos por sector/entidad/área, y tabla resumen. El filtrado RBAC funciona - admin ve todos los indicadores, usuario limitado solo los de su área."
