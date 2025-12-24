@@ -348,7 +348,7 @@ function SeguimientoView({ user, siteConfig }) {
         <div style={darkHeader}>CONTEXTO DEL USUARIO</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)' }}>
           {[{ label: 'ENTIDAD', value: contexto.entidad || '-' }, { label: 'ÁREA', value: contexto.area || '-' }, { label: 'SECTOR', value: contexto.sector || '-' },
-            { label: 'AÑO', value: <select value={gestion} onChange={(e) => setGestion(parseInt(e.target.value))} style={{ ...cellInput, background: styles.white, width: '100%' }}>{[2023,2024,2025,2026].map(y => <option key={y} value={y}>{y}</option>)}</select> },
+            { label: 'AÑO', value: <select value={gestion} onChange={(e) => setGestion(parseInt(e.target.value))} style={{ ...cellInput, background: styles.white, width: '100%' }}>{configYears.map(y => <option key={y} value={y}>{y}</option>)}</select> },
             { label: 'MES', value: <select value={mes} onChange={(e) => setMes(e.target.value)} style={{ ...cellInput, background: styles.white, width: '100%' }}>{meses.map(m => <option key={m} value={m}>{m}</option>)}</select> },
             { label: 'ESTADO', value: <span style={{ padding: '4px 12px', borderRadius: 4, fontSize: '0.7rem', fontWeight: 600, background: '#D1FAE5', color: styles.green }}>ABIERTO</span> }
           ].map((item, i) => (
