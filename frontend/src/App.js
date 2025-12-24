@@ -115,8 +115,11 @@ function Login({ onLogin }) {
 }
 
 // Sidebar Component with Accordion
-function Sidebar({ user, menuItems, activeView, setActiveView, collapsed }) {
+function Sidebar({ user, menuItems, activeView, setActiveView, collapsed, siteConfig }) {
   const [expandedGroups, setExpandedGroups] = useState({});
+  const currentStyles = getStyles(siteConfig?.color_theme || 'negro', siteConfig?.modo || 'claro');
+  const isAdmin = user?.rol === 'ADMINISTRADOR';
+  
   const getIcon = (name) => {
     const icons = { 'CONFIGURACION': '⚙️', 'PARAMETRICAS': '📋', 'OPERACIONES': '📈', 'Usuarios': '👥', 'Roles': '🔐', 'Rol': '🔐', 'Menu': '☰', 'Sector': '🏭', 'Entidad': '🏛️', 'Pilar': '🏛️', 'Eje': '↔️', 'Meta': '🎯', 'Resultado': '📊', 'Acción': '⚡', 'Banco de Indicadores': '💾', 'Rendición de Cuentas': '📑', 'Seguimiento': '📑' };
     return icons[name] || '📄';
@@ -129,23 +132,31 @@ function Sidebar({ user, menuItems, activeView, setActiveView, collapsed }) {
   const visibleSeparators = separators.filter(sep => groups[sep.id_menu]?.length > 0);
 
   return (
-    <div style={{ width: collapsed ? 60 : 260, minHeight: '100vh', background: styles.black, position: 'fixed', left: 0, top: 0, transition: 'width 0.3s ease', zIndex: 1000, overflowY: 'auto', overflowX: 'hidden' }}>
-      <div style={{ padding: '16px 14px', borderBottom: `1px solid ${styles.gray800}`, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 32, height: 32, background: styles.white, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><span style={{ fontSize: 16 }}>📊</span></div>
-        {!collapsed && <div><div style={{ color: styles.white, fontWeight: 600, fontSize: '0.8rem' }}>SMS</div><div style={{ color: styles.gray500, fontSize: '0.6rem' }}>Monitoreo Sectorial</div></div>}
+    <div style={{ width: collapsed ? 60 : 260, minHeight: '100vh', background: currentStyles.primary, position: 'fixed', left: 0, top: 0, transition: 'width 0.3s ease', zIndex: 1000, overflowY: 'auto', overflowX: 'hidden' }}>
+      <div style={{ padding: '16px 14px', borderBottom: `1px solid ${currentStyles.gray800}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+        {siteConfig?.logo_url ? (
+          <img src={siteConfig.logo_url} alt="Logo" style={{ width: siteConfig.logo_width || 32, height: siteConfig.logo_height || 32, objectFit: 'contain', borderRadius: 6, flexShrink: 0 }} />
+        ) : (
+          <div style={{ width: 32, height: 32, background: '#FFFFFF', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><span style={{ fontSize: 16 }}>📊</span></div>
+        )}
+        {!collapsed && <div><div style={{ color: '#FFFFFF', fontWeight: 600, fontSize: '0.8rem' }}>SMS</div><div style={{ color: currentStyles.gray500, fontSize: '0.6rem' }}>Monitoreo Sectorial</div></div>}
       </div>
-      <div onClick={() => setActiveView('home')} style={{ padding: '8px 14px', color: activeView === 'home' ? styles.white : styles.gray400, background: activeView === 'home' ? styles.gray800 : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem' }}><span>🏠</span>{!collapsed && <span>Inicio</span>}</div>
+      <div onClick={() => setActiveView('home')} style={{ padding: '8px 14px', color: activeView === 'home' ? '#FFFFFF' : currentStyles.gray400, background: activeView === 'home' ? currentStyles.primaryHover : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem' }}><span>🏠</span>{!collapsed && <span>Inicio</span>}</div>
       {visibleSeparators.map(sep => (
         <div key={sep.id_menu}>
-          <div onClick={() => toggleGroup(sep.id_menu)} style={{ padding: '8px 14px', background: styles.gray900, color: styles.white, fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}>
+          <div onClick={() => toggleGroup(sep.id_menu)} style={{ padding: '8px 14px', background: currentStyles.gray900, color: '#FFFFFF', fontWeight: 600, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span>{getIcon(sep.opcion)}</span>{!collapsed && <span>{sep.opcion}</span>}</div>
             {!collapsed && <span style={{ fontSize: '0.55rem', transition: 'transform 0.2s', transform: expandedGroups[sep.id_menu] ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>}
           </div>
           {!collapsed && expandedGroups[sep.id_menu] && groups[sep.id_menu]?.map(item => (
-            <div key={item.id_menu} onClick={() => item.enlace && setActiveView(item.enlace)} style={{ padding: '6px 14px 6px 40px', color: activeView === item.enlace ? styles.white : styles.gray400, background: activeView === item.enlace ? styles.gray800 : 'transparent', cursor: 'pointer', fontSize: '0.75rem', transition: 'all 0.15s ease' }}>{item.opcion}</div>
+            <div key={item.id_menu} onClick={() => item.enlace && setActiveView(item.enlace)} style={{ padding: '6px 14px 6px 40px', color: activeView === item.enlace ? '#FFFFFF' : currentStyles.gray400, background: activeView === item.enlace ? currentStyles.primaryHover : 'transparent', cursor: 'pointer', fontSize: '0.75rem', transition: 'all 0.15s ease' }}>{item.opcion}</div>
           ))}
         </div>
       ))}
+      {/* Config button for Admin only */}
+      {isAdmin && (
+        <div onClick={() => setActiveView('loadConfiguracionView')} style={{ padding: '8px 14px', color: activeView === 'loadConfiguracionView' ? '#FFFFFF' : currentStyles.gray400, background: activeView === 'loadConfiguracionView' ? currentStyles.primaryHover : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', marginTop: 8, borderTop: `1px solid ${currentStyles.gray800}` }}><span>⚙️</span>{!collapsed && <span>Configuración del Sistema</span>}</div>
+      )}
     </div>
   );
 }
