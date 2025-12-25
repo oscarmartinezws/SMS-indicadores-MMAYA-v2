@@ -1,8 +1,8 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
@@ -13,8 +13,12 @@ from datetime import datetime, timezone, timedelta
 import asyncpg
 import bcrypt
 import jwt
+import shutil
 
 ROOT_DIR = Path(__file__).parent
+UPLOAD_DIR = ROOT_DIR / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
+
 load_dotenv(ROOT_DIR / '.env')
 
 # JWT Configuration
@@ -31,11 +35,6 @@ PG_CONFIG = {
     'password': 'P1c010c0#2026',
     'command_timeout': 60
 }
-
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
 
 # PostgreSQL pool
 pg_pool = None
