@@ -909,7 +909,7 @@ async def save_rendicion(data: dict):
             row = await conn.fetchrow(query, *values)
             return dict(row)
 
-# ========== Site Configuration ==========
+# ========== Site Configuration (PostgreSQL) ==========
 class SiteConfig(BaseModel):
     plan_anio_inicio: int = 2020
     plan_anio_fin: int = 2025
@@ -923,57 +923,101 @@ class SiteConfig(BaseModel):
 
 @sms_router.get("/configuracion")
 async def get_site_config():
-    """Get site configuration"""
-    config = await db.site_config.find_one({"_id": "site_config"}, {"_id": 0})
-    if not config:
-        # Return default config
-        return SiteConfig().model_dump()
-    return config
+    """Get site configuration from PostgreSQL"""
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("SELECT clave, valor FROM configuracion_sistema")
+        config = {}
+        for row in rows:
+            key = row['clave']
+            value = row['valor']
+            # Convert numeric values
+            if key in ['plan_anio_inicio', 'plan_anio_fin', 'logo_width', 'logo_height']:
+                try:
+                    config[key] = int(value) if value else 0
+                except:
+                    config[key] = 0
+            else:
+                config[key] = value or ''
+        
+        # Set defaults if missing
+        defaults = SiteConfig().model_dump()
+        for key, default_value in defaults.items():
+            if key not in config:
+                config[key] = default_value
+        
+        return config
 
 @sms_router.post("/configuracion")
 async def save_site_config(config: dict):
-    """Save site configuration"""
-    # Validate and set defaults
-    validated = {
-        "plan_anio_inicio": config.get("plan_anio_inicio", 2020),
-        "plan_anio_fin": config.get("plan_anio_fin", 2025),
-        "favicon_url": config.get("favicon_url"),
-        "logo_url": config.get("logo_url"),
-        "logo_width": config.get("logo_width", 40),
-        "logo_height": config.get("logo_height", 40),
-        "color_theme": config.get("color_theme", "negro"),
-        "modo": config.get("modo", "claro"),
-        "copyright_text": config.get("copyright_text", "© 2025 - Sistema de Monitoreo Sectorial")
-    }
+    """Save site configuration to PostgreSQL"""
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        for key, value in config.items():
+            str_value = str(value) if value is not None else ''
+            await conn.execute("""
+                INSERT INTO configuracion_sistema (clave, valor, fecha_modificacion) 
+                VALUES ($1, $2, CURRENT_TIMESTAMP)
+                ON CONFLICT (clave) DO UPDATE SET valor = $2, fecha_modificacion = CURRENT_TIMESTAMP
+            """, key, str_value)
     
-    await db.site_config.update_one(
-        {"_id": "site_config"},
-        {"$set": validated},
-        upsert=True
-    )
-    return {"message": "Configuración guardada", "config": validated}
+    return {"message": "Configuración guardada", "config": config}
 
 @sms_router.get("/configuracion/years")
 async def get_config_years():
     """Get years based on plan configuration"""
-    config = await db.site_config.find_one({"_id": "site_config"}, {"_id": 0})
-    if not config:
-        config = SiteConfig().model_dump()
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        start_row = await conn.fetchrow("SELECT valor FROM configuracion_sistema WHERE clave = 'plan_anio_inicio'")
+        end_row = await conn.fetchrow("SELECT valor FROM configuracion_sistema WHERE clave = 'plan_anio_fin'")
+        
+        start = int(start_row['valor']) if start_row and start_row['valor'] else 2020
+        end = int(end_row['valor']) if end_row and end_row['valor'] else 2025
+        
+        return list(range(start, end + 1))
+
+@sms_router.post("/configuracion/upload/{tipo}")
+async def upload_config_file(tipo: str, file: UploadFile = File(...)):
+    """Upload favicon or logo file"""
+    if tipo not in ['favicon', 'logo']:
+        raise HTTPException(status_code=400, detail="Tipo debe ser 'favicon' o 'logo'")
     
-    start = config.get("plan_anio_inicio", 2020)
-    end = config.get("plan_anio_fin", 2025)
-    return list(range(start, end + 1))
+    # Validate file type
+    allowed_extensions = ['.ico', '.png', '.jpg', '.jpeg', '.svg', '.gif']
+    file_ext = Path(file.filename).suffix.lower()
+    if file_ext not in allowed_extensions:
+        raise HTTPException(status_code=400, detail=f"Tipo de archivo no permitido. Use: {', '.join(allowed_extensions)}")
+    
+    # Generate unique filename
+    filename = f"{tipo}_{uuid.uuid4().hex[:8]}{file_ext}"
+    file_path = UPLOAD_DIR / filename
+    
+    # Save file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Update config in PostgreSQL
+    file_url = f"/api/sms/uploads/{filename}"
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO configuracion_sistema (clave, valor, fecha_modificacion) 
+            VALUES ($1, $2, CURRENT_TIMESTAMP)
+            ON CONFLICT (clave) DO UPDATE SET valor = $2, fecha_modificacion = CURRENT_TIMESTAMP
+        """, f"{tipo}_url", file_url)
+    
+    return {"message": f"{tipo.capitalize()} subido correctamente", "url": file_url, "filename": filename}
 
-# ========== Original MongoDB routes ==========
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+@sms_router.get("/uploads/{filename}")
+async def get_uploaded_file(filename: str):
+    """Serve uploaded files"""
+    from fastapi.responses import FileResponse
+    file_path = UPLOAD_DIR / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    return FileResponse(file_path)
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
-
+# ========== API Status Route ==========
 @api_router.get("/")
 async def root():
     return {"message": "SMS API - Sistema de Monitoreo Sectorial"}
