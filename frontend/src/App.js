@@ -988,21 +988,89 @@ function ConfiguracionView({ siteConfig, onConfigChange }) {
         </div>
       </div>
 
-      {/* Logo and Favicon */}
+      {/* Logo and Favicon - File Upload */}
       <div style={cardStyle}>
         <div style={darkHeader}>🖼️ Logo y Favicon</div>
         <div style={{ padding: 20 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            {/* Favicon Upload */}
             <div>
-              <label style={labelStyle}>URL del Favicon</label>
-              <input type="url" placeholder="https://ejemplo.com/favicon.ico" value={config.favicon_url || ''} onChange={(e) => handleChange('favicon_url', e.target.value)} style={inputStyle} />
-              <p style={{ fontSize: '0.7rem', color: styles.gray500, marginTop: 6 }}>Formato recomendado: .ico o .png (32x32)</p>
+              <label style={labelStyle}>Favicon del Sitio</label>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input 
+                  type="file" 
+                  accept=".ico,.png,.jpg,.jpeg,.svg"
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const formData = new FormData();
+                      formData.append('file', file);
+                      try {
+                        const res = await fetch(`${API_URL}/api/sms/configuracion/upload/favicon`, {
+                          method: 'POST',
+                          body: formData
+                        });
+                        if (res.ok) {
+                          const data = await res.json();
+                          handleChange('favicon_url', data.url);
+                          setMessage('✅ Favicon subido correctamente');
+                        } else {
+                          setMessage('❌ Error al subir el favicon');
+                        }
+                      } catch (err) {
+                        setMessage('❌ Error de conexión');
+                      }
+                    }
+                  }}
+                  style={{ fontSize: '0.8rem' }}
+                />
+              </div>
+              <p style={{ fontSize: '0.7rem', color: styles.gray500, marginTop: 6 }}>Formato: .ico, .png (32x32 recomendado)</p>
+              {config.favicon_url && (
+                <div style={{ marginTop: 8, padding: 8, background: styles.gray100, borderRadius: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <img src={config.favicon_url.startsWith('/') ? API_URL + config.favicon_url : config.favicon_url} alt="Favicon" style={{ width: 24, height: 24 }} onError={(e) => { e.target.style.display = 'none'; }} />
+                  <span style={{ fontSize: '0.7rem', color: styles.gray600 }}>Favicon actual</span>
+                </div>
+              )}
             </div>
+            
+            {/* Logo Upload */}
             <div>
-              <label style={labelStyle}>URL del Logo Principal</label>
-              <input type="url" placeholder="https://ejemplo.com/logo.png" value={config.logo_url || ''} onChange={(e) => handleChange('logo_url', e.target.value)} style={inputStyle} />
+              <label style={labelStyle}>Logo Principal</label>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input 
+                  type="file" 
+                  accept=".png,.jpg,.jpeg,.svg,.gif"
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const formData = new FormData();
+                      formData.append('file', file);
+                      try {
+                        const res = await fetch(`${API_URL}/api/sms/configuracion/upload/logo`, {
+                          method: 'POST',
+                          body: formData
+                        });
+                        if (res.ok) {
+                          const data = await res.json();
+                          handleChange('logo_url', data.url);
+                          setMessage('✅ Logo subido correctamente');
+                        } else {
+                          setMessage('❌ Error al subir el logo');
+                        }
+                      } catch (err) {
+                        setMessage('❌ Error de conexión');
+                      }
+                    }
+                  }}
+                  style={{ fontSize: '0.8rem' }}
+                />
+              </div>
+              <p style={{ fontSize: '0.7rem', color: styles.gray500, marginTop: 6 }}>Formato: .png, .jpg, .svg</p>
             </div>
           </div>
+          
+          {/* Logo Size and Preview */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 20, marginTop: 16 }}>
             <div>
               <label style={labelStyle}>Ancho del Logo (px)</label>
@@ -1013,10 +1081,15 @@ function ConfiguracionView({ siteConfig, onConfigChange }) {
               <input type="number" min="20" max="200" value={config.logo_height} onChange={(e) => handleChange('logo_height', parseInt(e.target.value))} style={inputStyle} />
             </div>
             <div>
-              <label style={labelStyle}>Vista Previa</label>
+              <label style={labelStyle}>Vista Previa del Logo</label>
               <div style={{ padding: 16, background: styles.gray100, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 60 }}>
                 {config.logo_url ? (
-                  <img src={config.logo_url} alt="Logo" style={{ width: config.logo_width, height: config.logo_height, objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                  <img 
+                    src={config.logo_url.startsWith('/') ? API_URL + config.logo_url : config.logo_url} 
+                    alt="Logo" 
+                    style={{ width: config.logo_width, height: config.logo_height, objectFit: 'contain' }} 
+                    onError={(e) => { e.target.style.display = 'none'; }} 
+                  />
                 ) : (
                   <span style={{ fontSize: '0.75rem', color: styles.gray500 }}>Sin logo configurado</span>
                 )}
