@@ -135,7 +135,7 @@ function Sidebar({ user, menuItems, activeView, setActiveView, collapsed, siteCo
     <div style={{ width: collapsed ? 60 : 260, minHeight: '100vh', background: currentStyles.primary, position: 'fixed', left: 0, top: 0, transition: 'width 0.3s ease', zIndex: 1000, overflowY: 'auto', overflowX: 'hidden' }}>
       <div style={{ padding: '16px 14px', borderBottom: `1px solid ${currentStyles.gray800}`, display: 'flex', alignItems: 'center', gap: 10 }}>
         {siteConfig?.logo_url ? (
-          <img src={siteConfig.logo_url} alt="Logo" style={{ width: siteConfig.logo_width || 32, height: siteConfig.logo_height || 32, objectFit: 'contain', borderRadius: 6, flexShrink: 0 }} />
+          <img src={siteConfig.logo_url.startsWith('/') ? API_URL + siteConfig.logo_url : siteConfig.logo_url} alt="Logo" style={{ width: siteConfig.logo_width || 32, height: siteConfig.logo_height || 32, objectFit: 'contain', borderRadius: 6, flexShrink: 0 }} onError={(e) => { e.target.style.display = 'none'; }} />
         ) : (
           <div style={{ width: 32, height: 32, background: '#FFFFFF', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><span style={{ fontSize: 16 }}>📊</span></div>
         )}
